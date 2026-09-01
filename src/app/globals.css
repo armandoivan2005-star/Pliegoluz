@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b0e0d;
+  --foreground: #f5efe3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Inter", "Avenir Next", "Segoe UI", Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(183, 145, 77, 0.35);
+}
+
+.hero-texture {
+  background-color: #0b0e0d;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.book-cover {
+  background:
+    radial-gradient(circle at 68% 27%, rgba(172, 57, 51, 0.26), transparent 30%),
+    linear-gradient(145deg, #202b25 0%, #101713 58%, #541a1d 130%);
+}
+
+.book-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.24;
+  background-image: repeating-linear-gradient(35deg, transparent 0 5px, rgba(255, 255, 255, 0.035) 6px);
+}
+
+.book-cover::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 4%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.4);
+}
+
+.reader-copy {
+  line-height: 1.9;
+  letter-spacing: 0.003em;
+}
+
+.reader-copy p + p {
+  margin-top: 1.45em;
+}
+
+.reader-copy .first-paragraph::first-letter {
+  float: left;
+  margin: 0.12em 0.12em 0 0;
+  color: #a77b38;
+  font-size: 3.6em;
+  line-height: 0.72;
+}
