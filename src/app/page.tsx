@@ -68,15 +68,6 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8">
-          <div className="grid gap-5 md:grid-cols-3">
-            {[
-              ["01", "Lee a tu manera", "Ajusta tipografía, ancho, tamaño y tema sin perder tu lugar."],
-              ["02", "Continúa donde estabas", "El progreso queda guardado automáticamente en cada dispositivo."],
-              ["03", "Una edición cuidada", "Capítulos ordenados, metadatos claros y publicación editorial."],
-            ].map(([number, title, description]) => <article key={number} className="rounded-2xl border border-white/8 p-7"><span className="font-serif text-sm text-[#9a7f4d]">{number}</span><h3 className="mt-8 font-serif text-2xl">{title}</h3><p className="mt-3 text-sm leading-6 text-[#87847c]">{description}</p></article>)}
-          </div>
-        </section>
       </main>
       <SiteFooter />
     </div>

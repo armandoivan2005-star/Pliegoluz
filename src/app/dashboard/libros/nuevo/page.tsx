@@ -2,10 +2,10 @@ import Link from "next/link";
 import { createBookAction } from "@/app/dashboard/actions";
 import { BookEditorForm, EditorNotice } from "@/components/editor-forms";
 import { ArrowLeftIcon } from "@/components/icons";
-import { requireEditor } from "@/lib/editor-auth";
+import { requireAuthor } from "@/lib/editor-auth";
 
 export default async function NewBookPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const [{ error }] = await Promise.all([searchParams, requireEditor()]);
+  const [{ error }] = await Promise.all([searchParams, requireAuthor()]);
 
   return (
     <div className="mx-auto max-w-4xl">

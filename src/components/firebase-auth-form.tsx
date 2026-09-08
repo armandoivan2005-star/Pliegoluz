@@ -18,7 +18,7 @@ import {
 import { getFirebaseBrowserAuth } from "@/lib/firebase/client";
 
 type AuthMode = "login" | "register";
-type SessionResponse = { role?: "reader" | "editor" | "admin"; error?: string };
+type SessionResponse = { role?: "reader" | "author" | "admin"; error?: string };
 
 function firebaseMessage(error: unknown) {
   if (!(error instanceof FirebaseError)) return "No se pudo completar el acceso. Inténtalo otra vez.";
@@ -42,6 +42,8 @@ function firebaseMessage(error: unknown) {
       return "Ese correo ya está vinculado a otro método de acceso.";
     case "auth/too-many-requests":
       return "Demasiados intentos. Espera unos minutos antes de volver a intentar.";
+    case "auth/user-disabled":
+      return "Esta cuenta está suspendida.";
     default:
       return "Firebase no pudo completar el acceso.";
   }
@@ -72,7 +74,7 @@ export function FirebaseAuthForm({ mode, initialError }: { mode: AuthMode; initi
     } finally {
       if (auth) await signOut(auth);
     }
-    router.replace(result.role === "editor" || result.role === "admin" ? "/dashboard" : "/");
+    router.replace(result.role === "author" || result.role === "admin" ? "/dashboard" : "/perfil");
     router.refresh();
   }
 

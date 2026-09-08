@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireEditor } from "@/lib/editor-auth";
+import { requireBookManager } from "@/lib/editor-auth";
 import { cleanExtractedPdfText } from "@/lib/pdf-text";
 import type { PublicationStatus } from "@/lib/editorial";
 
@@ -81,7 +81,7 @@ function splitChapters(text: string): ImportedChapterDraft[] {
 }
 
 export async function analyzeBookPdfAction(bookId: string, _previous: PdfImportState, formData: FormData): Promise<PdfImportState> {
-  await requireEditor();
+  await requireBookManager(bookId);
   const file = formData.get("pdf_file");
   if (!(file instanceof File)) return { ...initialState, error: "Selecciona un PDF." };
   try {
@@ -93,7 +93,7 @@ export async function analyzeBookPdfAction(bookId: string, _previous: PdfImportS
 }
 
 export async function importBookChaptersAction(bookId: string, formData: FormData) {
-  const { supabase } = await requireEditor();
+  const { supabase } = await requireBookManager(bookId);
   const numbers = formData.getAll("number").map(Number);
   const titles = formData.getAll("title").map((value) => String(value).trim());
   const contents = formData.getAll("content").map((value) => cleanExtractedPdfText(String(value)));

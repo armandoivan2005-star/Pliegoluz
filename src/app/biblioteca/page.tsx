@@ -13,8 +13,15 @@ export const metadata: Metadata = {
   description: "Explora las obras publicadas en Pliegoluz.",
 };
 
-export default async function LibraryPage() {
-  const books = await getPublishedBooks();
+export default async function LibraryPage({ searchParams }: PageProps<"/biblioteca">) {
+  const params = await searchParams;
+  const rawQuery = Array.isArray(params.q) ? params.q[0] : params.q;
+  const query = rawQuery?.trim() ?? "";
+  const normalizedQuery = query.toLocaleLowerCase("es-MX");
+  const publishedBooks = await getPublishedBooks();
+  const books = normalizedQuery
+    ? publishedBooks.filter((book) => book.title.toLocaleLowerCase("es-MX").includes(normalizedQuery))
+    : publishedBooks;
 
   return (
     <div className="min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
@@ -29,6 +36,7 @@ export default async function LibraryPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+          {query && <div className="mb-9 flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-[#97948c]">Resultados para <span className="text-[#eee8dc]">“{query}”</span>: {books.length}</p><Link href="/biblioteca" className="text-xs font-semibold text-[#c6a86d] hover:text-white">Limpiar búsqueda</Link></div>}
           {books.length ? (
             <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 sm:gap-x-8 lg:grid-cols-4 xl:grid-cols-5">
               {books.map((book) => (
@@ -44,7 +52,7 @@ export default async function LibraryPage() {
             </div>
           ) : (
             <div className="grid min-h-80 place-items-center rounded-2xl border border-white/8 bg-white/[.02] p-8 text-center">
-              <div><BookOpenIcon className="mx-auto size-9 text-[#aa8c57]" /><h2 className="mt-5 font-serif text-2xl">Todavía no hay libros publicados</h2><p className="mt-2 text-sm text-[#817f78]">Las obras aparecerán aquí al cambiar su visibilidad a Publicado.</p></div>
+              <div><BookOpenIcon className="mx-auto size-9 text-[#aa8c57]" /><h2 className="mt-5 font-serif text-2xl">{query ? "No encontramos ese título" : "Todavía no hay libros publicados"}</h2><p className="mt-2 text-sm text-[#817f78]">{query ? "Prueba con otra parte del nombre del libro." : "Las obras aparecerán aquí al cambiar su visibilidad a Publicado."}</p></div>
             </div>
           )}
         </section>

@@ -49,14 +49,18 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: "firebase_uid" },
       )
-      .select("id, role")
-      .single<{ id: string; role: "reader" | "editor" | "admin" }>();
+      .select("id, role, suspended_at")
+      .single<{ id: string; role: "reader" | "author" | "admin"; suspended_at: string | null }>();
 
     if (error || !profile) {
       return NextResponse.json(
         { error: "No se pudo vincular el usuario con Supabase. Ejecuta supabase/firebase-auth.sql." },
         { status: 500 },
       );
+    }
+
+    if (profile.suspended_at) {
+      return NextResponse.json({ error: "Esta cuenta está suspendida." }, { status: 403 });
     }
 
     const sessionCookie = await firebaseAuth.createSessionCookie(idToken, {

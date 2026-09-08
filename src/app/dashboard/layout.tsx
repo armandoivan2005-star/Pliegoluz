@@ -1,22 +1,24 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/login/actions";
 import { BookOpenIcon, ListIcon, UserIcon } from "@/components/icons";
-import { requireEditor } from "@/lib/editor-auth";
+import { requireAuthor } from "@/lib/editor-auth";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { identity } = await requireEditor();
+  const { identity } = await requireAuthor();
 
   return (
     <div className="min-h-screen bg-[#f3f1eb] text-[#242620] lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="border-b border-white/8 bg-[#0d100e] px-5 py-5 text-[#f4eee2] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:px-6 lg:py-7">
         <div className="flex items-center justify-between lg:block">
           <Link href="/dashboard" className="font-serif text-xl tracking-[.2em] text-[#d5bd87]">PLIEGOLUZ</Link>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[.16em] text-[#8f8c84]">{identity.role}</span>
+          <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[.16em] text-[#8f8c84]">{identity.role === "admin" ? "Admin" : "Autor"}</span>
         </div>
 
         <nav className="mt-6 flex flex-wrap gap-2 lg:mt-12 lg:block lg:space-y-2">
           <Link href="/dashboard" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#d9d3c8] transition hover:bg-white/6"><ListIcon className="size-4" />Libros</Link>
           <Link href="/dashboard/libros/nuevo" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#d9d3c8] transition hover:bg-white/6"><BookOpenIcon className="size-4" />Nueva obra</Link>
+          {identity.role === "admin" && <Link href="/dashboard/usuarios" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#d9d3c8] transition hover:bg-white/6"><UserIcon className="size-4" />Usuarios</Link>}
+          <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#8f8c84] transition hover:bg-white/6 hover:text-white"><UserIcon className="size-4" />Mi perfil</Link>
           <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#8f8c84] transition hover:bg-white/6 hover:text-white"><BookOpenIcon className="size-4" />Inicio público</Link>
         </nav>
 

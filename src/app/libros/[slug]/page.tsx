@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookCover } from "@/components/book-cover";
-import { ArrowRightIcon, BookOpenIcon, ClockIcon, StarIcon } from "@/components/icons";
+import { BookInteractions } from "@/components/book-interactions";
+import { ArrowRightIcon, BookOpenIcon, ClockIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getPublishedBook } from "@/lib/public-library";
+import { getReadingPosition } from "@/lib/user-library";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<"/libros/[slug]">):
 
 export default async function BookPage({ params, searchParams }: PageProps<"/libros/[slug]">) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
-  const book = await getPublishedBook(slug);
+  const [book, readingPosition] = await Promise.all([getPublishedBook(slug), getReadingPosition(slug)]);
   if (!book) notFound();
   const chapterOrder = query.orden === "desc" ? "desc" : "asc";
   const orderedChapters = [...book.chapters].sort((a, b) =>
@@ -41,12 +43,16 @@ export default async function BookPage({ params, searchParams }: PageProps<"/lib
               <p className="mt-7 max-w-2xl text-base leading-7 text-[#aaa79f] sm:text-lg sm:leading-8">{book.description}</p>
               <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm text-[#89867e]">
                 <span>{book.author}</span><span>{book.status}</span><span>{book.chapters.length} capítulos</span>
-                <span className="flex items-center gap-1.5"><StarIcon className="size-4 text-[#c6a86d]" />{book.rating}</span>
               </div>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link href={`/leer/${book.slug}/1`} className="group inline-flex h-13 items-center justify-center gap-3 rounded-full bg-[#e8ddc6] px-6 text-sm font-semibold text-[#171816] transition hover:bg-white"><BookOpenIcon className="size-4" />Leer desde el inicio<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" /></Link>
-                <button type="button" className="h-13 rounded-full border border-white/15 px-6 text-sm text-[#ddd6ca] transition hover:border-[#c6a86d]/50">Añadir a mi biblioteca</button>
+                {readingPosition && (
+                  <Link href={`/leer/${book.slug}/${readingPosition.chapterNumber}?pos=${readingPosition.paragraphIndex}&offset=${readingPosition.paragraphOffset.toFixed(5)}`} className="group inline-flex h-13 items-center justify-center gap-3 rounded-full border border-[#c6a86d]/45 px-6 text-sm font-semibold text-[#dfc88f] transition hover:border-[#c6a86d] hover:bg-[#c6a86d]/8">
+                    Continuar donde te quedaste<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" />
+                  </Link>
+                )}
               </div>
+              <BookInteractions slug={book.slug} />
             </div>
           </div>
         </section>

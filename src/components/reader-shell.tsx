@@ -15,6 +15,7 @@ type ReaderShellProps = {
   paragraphs: string[];
   totalChapters: number;
   isPreview: boolean;
+  canSyncProgress: boolean;
 };
 
 const themeClasses: Record<Theme, string> = {
@@ -24,7 +25,7 @@ const themeClasses: Record<Theme, string> = {
 };
 
 export function ReaderShell(props: ReaderShellProps) {
-  const { bookSlug, bookTitle, chapterNumber, chapterRoman, chapterTitle, paragraphs, totalChapters, isPreview } = props;
+  const { bookSlug, bookTitle, chapterNumber, chapterRoman, chapterTitle, paragraphs, totalChapters, isPreview, canSyncProgress } = props;
   const firstTextParagraph = 0;
   const [fontSize, setFontSize] = useState(20);
   const [wide, setWide] = useState(false);
@@ -63,6 +64,87 @@ export function ReaderShell(props: ReaderShellProps) {
     if (!preferencesReady) return;
     localStorage.setItem("pliegoluz:reader-preferences", JSON.stringify({ fontSize, wide, theme }));
   }, [fontSize, wide, theme, preferencesReady]);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
+    const paragraphNodes = Array.from(document.querySelectorAll<HTMLElement>("[data-reader-paragraph]"));
+    if (!paragraphNodes.length) return;
+
+    let saveTimer: ReturnType<typeof setTimeout> | undefined;
+    let hasMeasured = false;
+    let latest = { paragraphIndex: 0, paragraphOffset: 0, progressPercent: 0 };
+
+    const sendProgress = (keepalive = false) => {
+      localStorage.setItem("pliegoluz:last-read", JSON.stringify({ bookSlug, chapterNumber, ...latest }));
+      if (!canSyncProgress) return;
+      fetch("/api/reading-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: bookSlug, chapterNumber, ...latest }),
+        keepalive,
+      }).catch(() => undefined);
+    };
+
+    const measureProgress = () => {
+      const marker = window.scrollY + window.innerHeight * 0.35;
+      let paragraphIndex = 0;
+      let paragraphTop = paragraphNodes[0].getBoundingClientRect().top + window.scrollY;
+
+      for (let index = 0; index < paragraphNodes.length; index += 1) {
+        const top = paragraphNodes[index].getBoundingClientRect().top + window.scrollY;
+        if (top > marker) break;
+        paragraphIndex = index;
+        paragraphTop = top;
+      }
+
+      const paragraphHeight = Math.max(1, paragraphNodes[paragraphIndex].offsetHeight);
+      const paragraphOffset = Math.min(1, Math.max(0, (marker - paragraphTop) / paragraphHeight));
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      latest = {
+        paragraphIndex,
+        paragraphOffset,
+        progressPercent: Math.min(100, Math.max(0, (window.scrollY / maxScroll) * 100)),
+      };
+      hasMeasured = true;
+      localStorage.setItem("pliegoluz:last-read", JSON.stringify({ bookSlug, chapterNumber, ...latest }));
+
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => sendProgress(), 1200);
+    };
+
+    const restorePosition = () => {
+      const query = new URLSearchParams(window.location.search);
+      const paragraphIndex = Number(query.get("pos"));
+      const paragraphOffset = Number(query.get("offset"));
+      if (!Number.isInteger(paragraphIndex) || paragraphIndex < 0 || paragraphIndex >= paragraphNodes.length || !Number.isFinite(paragraphOffset)) {
+        measureProgress();
+        return;
+      }
+
+      const paragraph = paragraphNodes[paragraphIndex];
+      const top = paragraph.getBoundingClientRect().top + window.scrollY;
+      const target = top + paragraph.offsetHeight * Math.min(1, Math.max(0, paragraphOffset)) - window.innerHeight * 0.35;
+      window.scrollTo({ top: Math.max(0, target), behavior: "auto" });
+      measureProgress();
+    };
+
+    const firstFrame = requestAnimationFrame(() => requestAnimationFrame(restorePosition));
+    const onPageHide = () => {
+      measureProgress();
+      if (saveTimer) clearTimeout(saveTimer);
+      sendProgress(true);
+    };
+    window.addEventListener("scroll", measureProgress, { passive: true });
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      window.removeEventListener("scroll", measureProgress);
+      window.removeEventListener("pagehide", onPageHide);
+      if (saveTimer) clearTimeout(saveTimer);
+      if (hasMeasured) sendProgress(true);
+    };
+  }, [bookSlug, canSyncProgress, chapterNumber, paragraphs.length, preferencesReady]);
 
   function toggleBookmark() {
     const next = !bookmarked;
@@ -106,6 +188,8 @@ export function ReaderShell(props: ReaderShellProps) {
             {paragraphs.map((paragraph, index) => (
               <p
                 key={`${chapterNumber}:${index}`}
+                id={`paragraph-${index}`}
+                data-reader-paragraph
                 className={index === firstTextParagraph ? "first-paragraph" : ""}
               >
                 {paragraph}

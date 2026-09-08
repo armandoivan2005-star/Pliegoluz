@@ -3,7 +3,7 @@
 
 create extension if not exists "pgcrypto";
 
-create type public.user_role as enum ('reader', 'editor', 'admin');
+create type public.user_role as enum ('reader', 'author', 'admin');
 create type public.publication_status as enum ('draft', 'published', 'archived');
 
 -- Firebase conserva las credenciales. Supabase conserva los datos del usuario
@@ -17,6 +17,7 @@ create table public.firebase_profiles (
   email_verified boolean not null default false,
   provider text,
   role public.user_role not null default 'reader',
+  suspended_at timestamptz,
   last_sign_in_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -24,6 +25,7 @@ create table public.firebase_profiles (
 
 create table public.books (
   id uuid primary key default gen_random_uuid(),
+  author_profile_id uuid references public.firebase_profiles(id) on delete set null,
   slug text not null unique,
   title text not null,
   subtitle text,
@@ -58,6 +60,8 @@ create table public.reading_progress (
   book_id uuid not null references public.books(id) on delete cascade,
   chapter_id uuid not null references public.chapters(id) on delete cascade,
   progress_percent numeric(5, 2) not null default 0 check (progress_percent between 0 and 100),
+  paragraph_index integer not null default 0 check (paragraph_index >= 0),
+  paragraph_offset numeric(6, 5) not null default 0 check (paragraph_offset between 0 and 1),
   updated_at timestamptz not null default now(),
   primary key (profile_id, book_id)
 );
@@ -71,6 +75,22 @@ create table public.bookmarks (
   unique (profile_id, chapter_id, paragraph_key)
 );
 
+create table public.book_favorites (
+  profile_id uuid not null references public.firebase_profiles(id) on delete cascade,
+  book_id uuid not null references public.books(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (profile_id, book_id)
+);
+
+create table public.book_ratings (
+  profile_id uuid not null references public.firebase_profiles(id) on delete cascade,
+  book_id uuid not null references public.books(id) on delete cascade,
+  rating smallint not null check (rating between 1 and 5),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (profile_id, book_id)
+);
+
 create index chapters_book_number_idx on public.chapters(book_id, number);
 create index bookmarks_profile_idx on public.bookmarks(profile_id, created_at desc);
 create index books_status_idx on public.books(status, updated_at desc);
@@ -81,11 +101,14 @@ alter table public.books enable row level security;
 alter table public.chapters enable row level security;
 alter table public.reading_progress enable row level security;
 alter table public.bookmarks enable row level security;
+alter table public.book_favorites enable row level security;
+alter table public.book_ratings enable row level security;
 
 grant select on public.books, public.chapters to anon, authenticated;
 revoke insert, update, delete on public.books, public.chapters from anon, authenticated;
 revoke all on public.firebase_profiles, public.reading_progress, public.bookmarks from anon, authenticated;
 grant all on public.firebase_profiles, public.reading_progress, public.bookmarks to service_role;
+grant all on public.book_favorites, public.book_ratings to service_role;
 
 create policy "Published books are public"
 on public.books for select

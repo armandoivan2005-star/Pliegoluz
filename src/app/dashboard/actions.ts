@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireEditor } from "@/lib/editor-auth";
+import { requireAuthor, requireBookManager } from "@/lib/editor-auth";
 import type { PublicationStatus, WorkStatus } from "@/lib/editorial";
 import { cleanExtractedPdfText } from "@/lib/pdf-text";
 
@@ -45,7 +45,7 @@ function formError(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
-type EditorSupabase = Awaited<ReturnType<typeof requireEditor>>["supabase"];
+type EditorSupabase = Awaited<ReturnType<typeof requireAuthor>>["supabase"];
 type CoverUpload = { bytes: Uint8Array; contentType: string; extension: string };
 
 async function coverUpload(formData: FormData, errorPath: string): Promise<CoverUpload | null> {
@@ -117,7 +117,7 @@ export async function createBookAction(formData: FormData) {
   const errorPath = "/dashboard/libros/nuevo";
   const fields = validateBook(formData, errorPath);
   const cover = await coverUpload(formData, errorPath);
-  const { supabase } = await requireEditor();
+  const { supabase, identity } = await requireAuthor();
   const bookId = crypto.randomUUID();
   const coverPath = cover ? await storeBookCover(supabase, bookId, cover, errorPath) : null;
   const { data, error } = await supabase
@@ -125,6 +125,7 @@ export async function createBookAction(formData: FormData) {
     .insert({
       id: bookId,
       ...fields,
+      author_profile_id: identity.id,
       cover_path: coverPath,
       published_at: fields.status === "published" ? new Date().toISOString() : null,
     })
@@ -146,7 +147,7 @@ export async function updateBookAction(bookId: string, formData: FormData) {
   const errorPath = `/dashboard/libros/${bookId}`;
   const fields = validateBook(formData, errorPath);
   const cover = await coverUpload(formData, errorPath);
-  const { supabase } = await requireEditor();
+  const { supabase } = await requireBookManager(bookId);
   const { data: current } = await supabase
     .from("books")
     .select("slug, cover_path, published_at")
@@ -231,7 +232,7 @@ async function validateChapter(formData: FormData, errorPath: string) {
 export async function createChapterAction(bookId: string, formData: FormData) {
   const errorPath = `/dashboard/libros/${bookId}/capitulos/nuevo`;
   const fields = await validateChapter(formData, errorPath);
-  const { supabase } = await requireEditor();
+  const { supabase } = await requireBookManager(bookId);
   const { data: book } = await supabase.from("books").select("slug").eq("id", bookId).maybeSingle<{ slug: string }>();
   if (!book) formError("/dashboard", "El libro ya no existe.");
 
@@ -257,7 +258,7 @@ export async function createChapterAction(bookId: string, formData: FormData) {
 export async function updateChapterAction(bookId: string, chapterId: string, formData: FormData) {
   const errorPath = `/dashboard/libros/${bookId}/capitulos/${chapterId}`;
   const fields = await validateChapter(formData, errorPath);
-  const { supabase } = await requireEditor();
+  const { supabase } = await requireBookManager(bookId);
   const [{ data: book }, { data: current }] = await Promise.all([
     supabase.from("books").select("slug").eq("id", bookId).maybeSingle<{ slug: string }>(),
     supabase.from("chapters").select("published_at, number").eq("id", chapterId).eq("book_id", bookId).maybeSingle<{ published_at: string | null; number: number }>(),
@@ -294,7 +295,7 @@ export async function bulkUpdateChaptersAction(bookId: string, formData: FormDat
   if (!selectedIds.length) formError(returnPath, "Selecciona al menos un capítulo.");
   if (!["publish", "draft", "delete"].includes(action)) formError(returnPath, "La acción seleccionada no es válida.");
 
-  const { supabase } = await requireEditor();
+  const { supabase } = await requireBookManager(bookId);
   const [{ data: book }, { data: chapters, error: chaptersError }] = await Promise.all([
     supabase.from("books").select("slug").eq("id", bookId).maybeSingle<{ slug: string }>(),
     supabase.from("chapters").select("id, number").eq("book_id", bookId).in("id", selectedIds).returns<Array<{ id: string; number: number }>>(),
