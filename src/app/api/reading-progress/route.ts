@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUserIdentity } from "@/lib/editor-auth";
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type ProgressRequest = {
@@ -10,13 +11,8 @@ type ProgressRequest = {
   progressPercent?: number;
 };
 
-function sameOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
 export async function POST(request: NextRequest) {
-  if (!sameOrigin(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
 
   const identity = await getCurrentUserIdentity();
   if (!identity) return NextResponse.json({ error: "Inicia sesión para guardar tu progreso." }, { status: 401 });

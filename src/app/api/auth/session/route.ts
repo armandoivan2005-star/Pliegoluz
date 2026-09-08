@@ -1,17 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 import { FIREBASE_SESSION_COOKIE, FIREBASE_SESSION_MAX_AGE } from "@/lib/firebase/session";
+import { isSameOriginRequest } from "@/lib/request-origin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type SessionRequest = { idToken?: string };
 
-function sameOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
 export async function POST(request: NextRequest) {
-  if (!sameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
   }
 
@@ -96,7 +92,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!sameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
   }
 
