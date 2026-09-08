@@ -51,8 +51,8 @@ export default async function BookPage({ params, searchParams }: PageProps<"/lib
                     Continuar donde te quedaste<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" />
                   </Link>
                 )}
+                <BookInteractions slug={book.slug} />
               </div>
-              <BookInteractions slug={book.slug} />
             </div>
           </div>
         </section>

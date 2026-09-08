@@ -17,6 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="mt-3 text-sm leading-6 text-[#918e86]">Accede con Google o con tu cuenta de Pliegoluz.</p>
           <FirebaseAuthForm mode="login" initialError={error} />
         </section>
+        <Link href="/" className="mt-5 flex h-11 w-full items-center justify-center rounded-xl border border-white/10 text-sm text-[#aaa79f] transition hover:border-[#c6a86d]/45 hover:text-[#f5efe3]">← Volver al inicio</Link>
         <p className="mt-5 text-center text-xs text-[#6f6d67]">La autenticación se procesa de forma segura con Firebase.</p>
       </div>
     </main>

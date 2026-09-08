@@ -13,7 +13,7 @@ export async function BookInteractions({ slug }: { slug: string }) {
   const rateBook = rateBookAction.bind(null, slug);
 
   return (
-    <div className="mt-5 flex items-center gap-3">
+    <div className="flex items-center gap-3">
       <form action={toggleFavorite}>
         <button
           aria-label={state.favorite ? "Quitar de mi biblioteca" : "Añadir a mi biblioteca"}
