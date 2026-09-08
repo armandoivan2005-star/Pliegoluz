@@ -78,6 +78,7 @@ export function FirebaseAuthForm({ mode, initialError }: { mode: AuthMode; initi
 
   async function handleCredentials(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     setError("");
     setPending(true);
 
@@ -86,7 +87,6 @@ export function FirebaseAuthForm({ mode, initialError }: { mode: AuthMode; initi
       if (!auth) throw new Error("Firebase no está configurado en el navegador.");
       await setPersistence(auth, inMemoryPersistence);
 
-      const formData = new FormData(event.currentTarget);
       const email = String(formData.get("email") ?? "").trim().toLowerCase();
       const password = String(formData.get("password") ?? "");
 
@@ -139,7 +139,7 @@ export function FirebaseAuthForm({ mode, initialError }: { mode: AuthMode; initi
 
       <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[.2em] text-[#68665f]"><span className="h-px flex-1 bg-white/10" />o usa tu correo<span className="h-px flex-1 bg-white/10" /></div>
 
-      <form onSubmit={handleCredentials} className="space-y-5">
+      <form method="post" onSubmit={handleCredentials} className="space-y-5">
         {mode === "register" && (
           <label className="block text-sm text-[#c7c0b4]">Nombre
             <input name="display_name" type="text" autoComplete="name" minLength={2} required className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-black/20 px-4 text-white outline-none transition focus:border-[#c6a86d]/70" />

@@ -32,6 +32,8 @@ create table public.books (
   genres text[] not null default array[]::text[],
   cover_path text,
   status public.publication_status not null default 'draft',
+  work_status text not null default 'completed'
+    check (work_status in ('completed', 'publishing', 'paused', 'cancelled')),
   published_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

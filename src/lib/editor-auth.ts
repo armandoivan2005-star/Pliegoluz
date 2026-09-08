@@ -14,6 +14,29 @@ export type EditorIdentity = {
   role: EditorRole;
 };
 
+export const getCurrentEditorIdentity = cache(async (): Promise<EditorIdentity | null> => {
+  const sessionUser = await getFirebaseSessionUser();
+  if (!sessionUser) return null;
+
+  const supabase = createAdminClient();
+  if (!supabase) return null;
+
+  const { data: profile, error } = await supabase
+    .from("firebase_profiles")
+    .select("id, display_name, role")
+    .eq("firebase_uid", sessionUser.uid)
+    .maybeSingle<{ id: string; display_name: string | null; role: "reader" | EditorRole }>();
+
+  if (error || !profile || !["editor", "admin"].includes(profile.role)) return null;
+
+  return {
+    id: profile.id,
+    email: sessionUser.email,
+    displayName: profile.display_name ?? sessionUser.displayName,
+    role: profile.role as EditorRole,
+  };
+});
+
 export const requireEditor = cache(async () => {
   const sessionUser = await getFirebaseSessionUser();
   if (!sessionUser) redirect("/login");

@@ -72,8 +72,22 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
     return response;
-  } catch {
-    return NextResponse.json({ error: "No se pudo verificar la cuenta de Firebase." }, { status: 401 });
+  } catch (caught) {
+    const code =
+      typeof caught === "object" && caught !== null && "code" in caught
+        ? String(caught.code)
+        : "unknown";
+    console.error("Firebase session error", { code });
+
+    return NextResponse.json(
+      {
+        error:
+          process.env.NODE_ENV === "development"
+            ? `No se pudo verificar la cuenta de Firebase (${code}).`
+            : "No se pudo verificar la cuenta de Firebase.",
+      },
+      { status: 401 },
+    );
   }
 }
 

@@ -25,7 +25,7 @@ const themeClasses: Record<Theme, string> = {
 
 export function ReaderShell(props: ReaderShellProps) {
   const { bookSlug, bookTitle, chapterNumber, chapterRoman, chapterTitle, paragraphs, totalChapters, isPreview } = props;
-  const firstTextParagraph = paragraphs.findIndex((paragraph) => paragraph !== "◆");
+  const firstTextParagraph = 0;
   const [fontSize, setFontSize] = useState(20);
   const [wide, setWide] = useState(false);
   const [theme, setTheme] = useState<Theme>("paper");
@@ -106,7 +106,7 @@ export function ReaderShell(props: ReaderShellProps) {
             {paragraphs.map((paragraph, index) => (
               <p
                 key={`${chapterNumber}:${index}`}
-                className={paragraph === "◆" ? "my-10 text-center text-sm text-[#a77b38]" : index === firstTextParagraph ? "first-paragraph" : ""}
+                className={index === firstTextParagraph ? "first-paragraph" : ""}
               >
                 {paragraph}
               </p>

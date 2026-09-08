@@ -10,9 +10,10 @@ export type Chapter = {
 export type Book = {
   slug: string;
   title: string;
+  coverUrl?: string | null;
   subtitle: string;
   author: string;
-  status: "En publicación" | "Completo";
+  status: "Completo" | "En publicación" | "En pausa" | "Cancelado";
   description: string;
   genres: string[];
   views: string;
@@ -58,6 +59,7 @@ export const books: Book[] = [
   {
     slug: "casa-reykov",
     title: "Casa Reykov",
+    coverUrl: null,
     subtitle: "Capítulos I–XLI · Edición canónica",
     author: "Autor por confirmar",
     status: "Completo",
@@ -87,10 +89,11 @@ export const readerPreview = [
 ];
 
 export function getChapterParagraphs(chapter: Chapter) {
-  const paragraphs = chapter.contentMarkdown
+  const paragraphs = cleanExtractedPdfText(chapter.contentMarkdown ?? "")
     ?.split(/\r?\n\s*\r?\n/)
-    .map((paragraph) => paragraph.trim() === "u" ? "◆" : paragraph.trim())
-    .filter(Boolean);
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph && paragraph !== "u" && paragraph !== "◆");
 
   return paragraphs?.length ? paragraphs : readerPreview;
 }
+import { cleanExtractedPdfText } from "@/lib/pdf-text";

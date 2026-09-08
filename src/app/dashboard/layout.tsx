@@ -14,10 +14,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[.16em] text-[#8f8c84]">{identity.role}</span>
         </div>
 
-        <nav className="mt-6 flex gap-2 lg:mt-12 lg:block lg:space-y-2">
+        <nav className="mt-6 flex flex-wrap gap-2 lg:mt-12 lg:block lg:space-y-2">
           <Link href="/dashboard" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#d9d3c8] transition hover:bg-white/6"><ListIcon className="size-4" />Libros</Link>
           <Link href="/dashboard/libros/nuevo" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#d9d3c8] transition hover:bg-white/6"><BookOpenIcon className="size-4" />Nueva obra</Link>
-          <Link href="/" target="_blank" className="hidden items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#8f8c84] transition hover:bg-white/6 hover:text-white lg:flex">Ver sitio público ↗</Link>
+          <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[#8f8c84] transition hover:bg-white/6 hover:text-white"><BookOpenIcon className="size-4" />Inicio público</Link>
         </nav>
 
         <div className="mt-6 border-t border-white/8 pt-5 lg:absolute lg:inset-x-6 lg:bottom-7">

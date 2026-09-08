@@ -3,6 +3,7 @@ import "server-only";
 import { requireEditor } from "@/lib/editor-auth";
 
 export type PublicationStatus = "draft" | "published" | "archived";
+export type WorkStatus = "completed" | "publishing" | "paused" | "cancelled";
 
 export type EditorBookSummary = {
   id: string;
@@ -35,6 +36,7 @@ export type EditorBook = {
   genres: string[];
   cover_path: string | null;
   status: PublicationStatus;
+  work_status: WorkStatus;
   published_at: string | null;
   updated_at: string;
 };
@@ -56,7 +58,7 @@ export async function getEditorBook(bookId: string) {
   const [{ data: book, error: bookError }, { data: chapters, error: chaptersError }] = await Promise.all([
     supabase
       .from("books")
-      .select("id, slug, title, subtitle, author_name, description, genres, cover_path, status, published_at, updated_at")
+      .select("id, slug, title, subtitle, author_name, description, genres, cover_path, status, work_status, published_at, updated_at")
       .eq("id", bookId)
       .maybeSingle<EditorBook>(),
     supabase
