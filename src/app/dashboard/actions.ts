@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuthor, requireBookManager } from "@/lib/editor-auth";
 import type { PublicationStatus, WorkStatus } from "@/lib/editorial";
@@ -137,6 +137,7 @@ export async function createBookAction(formData: FormData) {
     formError(errorPath, error?.code === "23505" ? "Ya existe un libro con ese slug." : "No se pudo crear el libro.");
   }
 
+  updateTag("public-library");
   revalidatePath("/");
   revalidatePath("/biblioteca");
   revalidatePath("/dashboard");
@@ -172,6 +173,7 @@ export async function updateBookAction(bookId: string, formData: FormData) {
     await supabase.storage.from("book-covers").remove([current.cover_path]);
   }
 
+  updateTag("public-library");
   revalidatePath("/");
   revalidatePath("/biblioteca");
   revalidatePath("/dashboard");
@@ -250,6 +252,7 @@ export async function createChapterAction(bookId: string, formData: FormData) {
     formError(errorPath, error?.code === "23505" ? `Ya existe el capítulo ${fields.number}.` : "No se pudo crear el capítulo.");
   }
 
+  updateTag("public-library");
   revalidatePath(`/dashboard/libros/${bookId}`);
   revalidatePath(`/libros/${book.slug}`);
   redirect(`/dashboard/libros/${bookId}/capitulos/${data.id}?saved=created`);
@@ -278,6 +281,7 @@ export async function updateChapterAction(bookId: string, chapterId: string, for
 
   if (error) formError(errorPath, error.code === "23505" ? `Ya existe el capítulo ${fields.number}.` : "No se pudieron guardar los cambios.");
 
+  updateTag("public-library");
   revalidatePath(`/dashboard/libros/${bookId}`);
   revalidatePath(`/libros/${book.slug}`);
   revalidatePath(`/leer/${book.slug}/${current.number}`);
@@ -319,6 +323,7 @@ export async function bulkUpdateChaptersAction(bookId: string, formData: FormDat
 
   if (error) formError(returnPath, "No se pudo aplicar la acción a los capítulos.");
 
+  updateTag("public-library");
   revalidatePath("/");
   revalidatePath("/biblioteca");
   revalidatePath(returnPath);

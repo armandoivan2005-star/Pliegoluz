@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireBookManager } from "@/lib/editor-auth";
 import { cleanExtractedPdfText } from "@/lib/pdf-text";
@@ -136,7 +136,10 @@ export async function importBookChaptersAction(bookId: string, formData: FormDat
   const { error } = await query;
   if (error) redirect(`${errorPath}?error=${encodeURIComponent("No se pudieron importar los capítulos.")}`);
 
+  updateTag("public-library");
   revalidatePath("/");
+  revalidatePath("/biblioteca");
+  revalidatePath("/novedades");
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/libros/${bookId}`);
   redirect(`/dashboard/libros/${bookId}?saved=imported`);

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { books as fallbackBooks, getBook, type Book } from "@/lib/library";
 import { createClient } from "@/lib/supabase/server";
@@ -94,7 +95,7 @@ function mergePublishedBook(book: BookRow, chapters: ChapterRow[], fallback?: Bo
   };
 }
 
-export const getPublishedBook = cache(async (slug: string): Promise<Book | undefined> => {
+const getPublishedBookFromDatabase = async (slug: string): Promise<Book | undefined> => {
   const fallback = getBook(slug);
 
   try {
@@ -124,9 +125,9 @@ export const getPublishedBook = cache(async (slug: string): Promise<Book | undef
   } catch {
     return fallback;
   }
-});
+};
 
-export const getPublishedBooks = cache(async (): Promise<Book[]> => {
+const getPublishedBooksFromDatabase = async (): Promise<Book[]> => {
   try {
     const supabase = await createClient();
     if (!supabase) return fallbackBooks;
@@ -157,9 +158,9 @@ export const getPublishedBooks = cache(async (): Promise<Book[]> => {
   } catch {
     return fallbackBooks;
   }
-});
+};
 
-export const getLatestPublishedChapters = cache(async (limit = 50): Promise<LatestPublishedChapter[]> => {
+const getLatestPublishedChaptersFromDatabase = async (limit = 50): Promise<LatestPublishedChapter[]> => {
   const safeLimit = Math.min(Math.max(limit, 1), 100);
 
   try {
@@ -213,4 +214,21 @@ export const getLatestPublishedChapters = cache(async (limit = 50): Promise<Late
       })))
       .slice(0, safeLimit);
   }
-});
+};
+
+const publicCacheOptions = {
+  revalidate: 60,
+  tags: ["public-library"],
+};
+
+export const getPublishedBook = cache(
+  unstable_cache(getPublishedBookFromDatabase, ["published-book"], publicCacheOptions),
+);
+
+export const getPublishedBooks = cache(
+  unstable_cache(getPublishedBooksFromDatabase, ["published-books"], publicCacheOptions),
+);
+
+export const getLatestPublishedChapters = cache(
+  unstable_cache(getLatestPublishedChaptersFromDatabase, ["latest-published-chapters"], publicCacheOptions),
+);

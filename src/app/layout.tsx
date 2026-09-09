@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { NavigationLoadingOverlay } from "@/components/navigation-loading-overlay";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,7 +14,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <Suspense fallback={null}>
+          <NavigationLoadingOverlay />
+        </Suspense>
+      </body>
     </html>
   );
 }
