@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const { idToken } = (await request.json()) as SessionRequest;
-    if (!idToken) {
-      return NextResponse.json({ error: "Falta el token de Firebase." }, { status: 400 });
+    if (typeof idToken !== "string" || idToken.length < 100 || idToken.length > 10_000) {
+      return NextResponse.json({ error: "El token de Firebase no es válido." }, { status: 400 });
     }
 
     const firebaseAuth = getFirebaseAdminAuth();

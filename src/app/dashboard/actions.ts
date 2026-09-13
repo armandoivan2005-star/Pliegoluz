@@ -302,10 +302,13 @@ export async function bulkUpdateChaptersAction(bookId: string, formData: FormDat
   const { supabase } = await requireBookManager(bookId);
   const [{ data: book }, { data: chapters, error: chaptersError }] = await Promise.all([
     supabase.from("books").select("slug").eq("id", bookId).maybeSingle<{ slug: string }>(),
-    supabase.from("chapters").select("id, number").eq("book_id", bookId).in("id", selectedIds).returns<Array<{ id: string; number: number }>>(),
+    supabase.from("chapters").select("id, number, content_markdown").eq("book_id", bookId).in("id", selectedIds).returns<Array<{ id: string; number: number; content_markdown: string }>>(),
   ]);
 
   if (!book || chaptersError || !chapters?.length) formError(returnPath, "No se encontraron los capítulos seleccionados.");
+  if (action === "publish" && chapters.some((chapter) => chapter.content_markdown.trim().length < 20)) {
+    formError(returnPath, "No se pueden publicar capítulos sin contenido suficiente.");
+  }
 
   const verifiedIds = chapters.map((chapter) => chapter.id);
   const now = new Date().toISOString();

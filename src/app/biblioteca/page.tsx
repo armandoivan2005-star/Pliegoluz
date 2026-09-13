@@ -24,7 +24,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/bibliote
     : publishedBooks;
 
   return (
-    <div className="min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
+    <div className="site-theme min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
       <SiteHeader />
       <main>
         <section className="hero-texture border-b border-white/8">

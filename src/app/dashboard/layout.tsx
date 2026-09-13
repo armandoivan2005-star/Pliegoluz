@@ -7,8 +7,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { identity } = await requireAuthor();
 
   return (
-    <div className="min-h-screen bg-[#f3f1eb] text-[#242620] lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="border-b border-white/8 bg-[#0d100e] px-5 py-5 text-[#f4eee2] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:px-6 lg:py-7">
+    <div className="editor-theme min-h-screen bg-[#f3f1eb] text-[#242620] lg:grid lg:grid-cols-[260px_1fr]">
+      <aside className="editor-sidebar border-b border-white/8 bg-[#0d100e] px-5 py-5 text-[#f4eee2] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:px-6 lg:py-7">
         <div className="flex items-center justify-between lg:block">
           <Link href="/dashboard" className="font-serif text-xl tracking-[.2em] text-[#d5bd87]">PLIEGOLUZ</Link>
           <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[.16em] text-[#8f8c84]">{identity.role === "admin" ? "Admin" : "Autor"}</span>

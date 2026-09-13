@@ -12,7 +12,7 @@ export function BookCover({ className = "", title = "Casa Reykov", chapterCount 
   return (
     <div
       aria-label={`Portada de ${title}`}
-      className={`book-cover relative isolate aspect-[2/3] overflow-hidden rounded-[3px] text-[#f0e7d3] shadow-[0_30px_70px_rgba(0,0,0,.38)] ${className}`}
+      className={`book-cover theme-static relative isolate aspect-[2/3] overflow-hidden rounded-[3px] text-[#f0e7d3] shadow-[0_30px_70px_rgba(0,0,0,.38)] ${className}`}
     >
       {coverUrl ? (
         // Supabase entrega esta imagen desde el bucket público de portadas.

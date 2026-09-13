@@ -62,7 +62,9 @@ where lower(email) = lower('tu-correo@ejemplo.com');
 
 5. Cierra la sesión y vuelve a entrar en [http://localhost:3000/login](http://localhost:3000/login).
 
-Los usuarios nuevos reciben el rol `reader`. Los roles `editor` y `admin` pueden crear y editar libros y capítulos. Los cambios con estado `published` aparecen en la biblioteca pública.
+Los usuarios nuevos reciben el rol `reader`. Los roles `author` y `admin` pueden crear y editar libros y capítulos. Los cambios con estado `published` aparecen en la biblioteca pública.
+
+En instalaciones existentes, ejecuta también `supabase/roles-community.sql`, `supabase/reading-progress-position.sql` y `supabase/published-content-constraint.sql` para aplicar las restricciones y funciones añadidas después del esquema inicial.
 
 ## Importar nuevamente el PDF
 

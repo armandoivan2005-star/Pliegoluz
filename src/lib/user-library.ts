@@ -55,42 +55,42 @@ export const getProfileLibrary = cache(async () => {
 
 export const getBookInteraction = cache(async (slug: string) => {
   const identity = await getCurrentUserIdentity();
-  const supabase = createAdminClient();
-  if (!supabase) return { identity, bookId: null, favorite: false, rating: null, average: null, ratingCount: 0 };
+  if (!identity) return { identity: null, bookId: null, favorite: false, rating: null };
 
-  const { data: book } = await supabase
+  const supabase = createAdminClient();
+  if (!supabase) return { identity, bookId: null, favorite: false, rating: null };
+
+  const { data: book, error: bookError } = await supabase
     .from("books")
     .select("id")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle<{ id: string }>();
-  if (!book) return { identity, bookId: null, favorite: false, rating: null, average: null, ratingCount: 0 };
+  if (bookError) throw new Error("No se pudo cargar la interacción con el libro.");
+  if (!book) return { identity, bookId: null, favorite: false, rating: null };
 
-  const { data: ratings } = await supabase
-    .from("book_ratings")
-    .select("profile_id, rating")
-    .eq("book_id", book.id)
-    .returns<Array<{ profile_id: string; rating: number }>>();
-  const values = ratings ?? [];
-  const ownRating = identity ? values.find((item) => item.profile_id === identity.id)?.rating ?? null : null;
-  let favorite = false;
-  if (identity) {
-    const { data } = await supabase
+  const [{ data: ownRating, error: ratingError }, { data: favorite, error: favoriteError }] = await Promise.all([
+    supabase
+      .from("book_ratings")
+      .select("rating")
+      .eq("profile_id", identity.id)
+      .eq("book_id", book.id)
+      .maybeSingle<{ rating: number }>(),
+    supabase
       .from("book_favorites")
       .select("book_id")
       .eq("profile_id", identity.id)
       .eq("book_id", book.id)
-      .maybeSingle();
-    favorite = Boolean(data);
-  }
+      .maybeSingle<{ book_id: string }>(),
+  ]);
+
+  if (ratingError || favoriteError) throw new Error("No se pudieron cargar tus datos del libro.");
 
   return {
     identity,
     bookId: book.id,
-    favorite,
-    rating: ownRating,
-    average: values.length ? values.reduce((sum, item) => sum + item.rating, 0) / values.length : null,
-    ratingCount: values.length,
+    favorite: Boolean(favorite),
+    rating: ownRating?.rating ?? null,
   };
 });
 

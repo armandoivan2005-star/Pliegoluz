@@ -1,8 +1,79 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   --background: #0b0e0d;
   --foreground: #f5efe3;
+  --site-background: #0b0e0d;
+  --site-header: rgba(11, 14, 13, 0.9);
+  --site-footer: #090b0a;
+  --site-surface: #121513;
+  --site-control: #101311;
+  --site-panel: rgba(255, 255, 255, 0.025);
+  --site-panel-hover: rgba(255, 255, 255, 0.055);
+  --site-raised: #171a18;
+  --site-input: rgba(0, 0, 0, 0.2);
+  --site-border: rgba(255, 255, 255, 0.1);
+  --site-border-strong: rgba(255, 255, 255, 0.17);
+  --site-text: #f5efe3;
+  --site-text-soft: #eee8dc;
+  --site-muted: #aaa79f;
+  --site-subtle: #817f78;
+  --site-faint: #6f6d67;
+  --site-accent: #c6a86d;
+  --site-accent-strong: #d6b978;
+  --site-grid-line: rgba(255, 255, 255, 0.018);
+  --editor-background: #0b0e0d;
+  --editor-surface: #121513;
+  --editor-surface-soft: #171a18;
+  --editor-surface-hover: #1c201d;
+  --editor-input: #0f1210;
+  --editor-border: rgba(255, 255, 255, 0.11);
+  --editor-text: #f5efe3;
+  --editor-muted: #aaa79f;
+  --editor-faint: #817f78;
+  --editor-accent: #d0aa62;
+  --editor-primary: #e8ddc6;
+  --editor-primary-hover: #f5efe3;
+  --editor-primary-text: #171816;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f4f0e8;
+  --foreground: #242620;
+  --site-background: #f4f0e8;
+  --site-header: rgba(244, 240, 232, 0.92);
+  --site-footer: #e9e2d5;
+  --site-surface: #fffaf1;
+  --site-control: #fffdf8;
+  --site-panel: rgba(36, 38, 32, 0.035);
+  --site-panel-hover: rgba(36, 38, 32, 0.07);
+  --site-raised: #e8e0d2;
+  --site-input: rgba(255, 255, 255, 0.75);
+  --site-border: rgba(36, 38, 32, 0.14);
+  --site-border-strong: rgba(36, 38, 32, 0.24);
+  --site-text: #242620;
+  --site-text-soft: #34362f;
+  --site-muted: #5f615a;
+  --site-subtle: #6c6a63;
+  --site-faint: #77746d;
+  --site-accent: #765720;
+  --site-accent-strong: #684b18;
+  --site-grid-line: rgba(36, 38, 32, 0.045);
+  --editor-background: #f3f1eb;
+  --editor-surface: #ffffff;
+  --editor-surface-soft: #faf9f6;
+  --editor-surface-hover: #faf8f3;
+  --editor-input: #ffffff;
+  --editor-border: rgba(0, 0, 0, 0.1);
+  --editor-text: #242620;
+  --editor-muted: rgba(0, 0, 0, 0.5);
+  --editor-faint: rgba(0, 0, 0, 0.4);
+  --editor-accent: #98783f;
+  --editor-primary: #20241f;
+  --editor-primary-hover: #000000;
+  --editor-primary-text: #ffffff;
 }
 
 @theme inline {
@@ -28,6 +99,284 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.site-theme {
+  background-color: var(--site-background);
+  color: var(--site-text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.theme-toggle {
+  border-color: var(--site-border-strong);
+  background: var(--site-panel);
+  color: var(--site-text-soft);
+}
+
+.theme-toggle:hover {
+  border-color: var(--site-accent);
+  background: var(--site-panel-hover);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--site-accent);
+  outline-offset: 3px;
+}
+
+.theme-when-dark {
+  display: flex;
+}
+
+.theme-when-light {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-when-dark {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-when-light {
+  display: flex;
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#0b0e0d]/90"] {
+  background-color: var(--site-header);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#090b0a]"] {
+  background-color: var(--site-footer);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#121513]"] {
+  background-color: var(--site-surface);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#101311]"] {
+  background-color: var(--site-control);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#151816]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-[#171a18]"] {
+  background-color: var(--site-raised);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/[.018]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/[.02]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/[.025]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/[.04]"] {
+  background-color: var(--site-panel);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/10"] {
+  background-color: var(--site-border);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-white/25"] {
+  background-color: var(--site-border-strong);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="bg-black/20"] {
+  background-color: var(--site-input);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="border-white/8"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="border-white/10"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="border-white/12"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="border-white/15"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="divide-white/8"] {
+  border-color: var(--site-border);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="divide-white/8"] > :not(:last-child) {
+  border-color: var(--site-border);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#f5efe3]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#f4eee2]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-white"] {
+  color: var(--site-text);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#eee8dc]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#e7e1d6]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#e8e3d8]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#ddd6ca]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#c7c0b4]"] {
+  color: var(--site-text-soft);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#aaa79e]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#aaa79f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#aca99f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#9d998f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#97948c]"] {
+  color: var(--site-muted);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#918e86]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#89867e]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#88857e]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#827f78]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#817f78]"] {
+  color: var(--site-subtle);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#7f7d76]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#77756f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#77746d]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#6f6d67]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#68665f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#5f605b]"] {
+  color: var(--site-faint);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#aa8c57]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#c6a86d]"] {
+  color: var(--site-accent);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#d5bd87]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#d6b978]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#d7bb82]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#dfc88f]"],
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="text-[#e1c68d]"] {
+  color: var(--site-accent-strong);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:text-white"]:hover,
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:text-[#f5efe3]"]:hover {
+  color: var(--site-text);
+}
+
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:bg-white/[.025]"]:hover,
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:bg-white/[.035]"]:hover,
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:bg-white/[.08]"]:hover,
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:bg-white/6"]:hover,
+.site-theme :where(:not(.theme-static, .theme-static *))[class~="hover:bg-white/50"]:hover {
+  background-color: var(--site-panel-hover);
+}
+
+.editor-theme {
+  background-color: var(--editor-background);
+  color: var(--editor-text);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-white"] {
+  background-color: var(--editor-surface);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-[#faf9f6]"] {
+  background-color: var(--editor-surface-soft);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-black/5"] {
+  background-color: var(--editor-surface-soft);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="border-black/8"],
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="border-black/10"] {
+  border-color: var(--editor-border);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="divide-black/7"] > :not(:last-child) {
+  border-color: var(--editor-border);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-[#242620]"] {
+  color: var(--editor-text);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-black/45"],
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-black/50"] {
+  color: var(--editor-muted);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-black/25"],
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-black/30"],
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-black/40"] {
+  color: var(--editor-faint);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-[#98783f]"] {
+  color: var(--editor-accent);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-[#20241f]"] {
+  background-color: var(--editor-primary);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-white"] {
+  color: var(--editor-primary-text);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="file:bg-[#20241f]"]::file-selector-button {
+  background-color: var(--editor-primary);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="file:text-white"]::file-selector-button {
+  color: var(--editor-primary-text);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="placeholder:text-black/30"]::placeholder {
+  color: var(--editor-faint);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:bg-[#f3f1eb]"]:hover,
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:bg-[#faf8f3]"]:hover,
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:bg-black/5"]:hover {
+  background-color: var(--editor-surface-hover);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:bg-black"]:hover {
+  background-color: var(--editor-primary-hover);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:text-black"]:hover {
+  color: var(--editor-text);
+}
+
+.editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:text-[#98783f]"]:hover {
+  color: var(--editor-accent);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-amber-50"],
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-amber-50/60"] {
+  background-color: rgba(245, 158, 11, 0.13);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-amber-800"] {
+  color: #f4c96b;
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-emerald-50"] {
+  background-color: rgba(16, 185, 129, 0.13);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-emerald-700"],
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-emerald-800"] {
+  color: #72d6ad;
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-slate-100"] {
+  background-color: rgba(148, 163, 184, 0.14);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-slate-600"] {
+  color: #b8c1ce;
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="bg-red-50"] {
+  background-color: rgba(239, 68, 68, 0.13);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="hover:bg-red-100"]:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-red-700"],
+:root[data-theme="dark"] .editor-theme :where(:not(.editor-sidebar, .editor-sidebar *))[class~="text-red-800"] {
+  color: #f39a9a;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -42,10 +391,10 @@ button {
 }
 
 .hero-texture {
-  background-color: #0b0e0d;
+  background-color: var(--site-background);
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    linear-gradient(var(--site-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--site-grid-line) 1px, transparent 1px);
   background-size: 56px 56px;
 }
 

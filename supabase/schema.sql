@@ -52,6 +52,8 @@ create table public.chapters (
   published_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint chapters_published_content_check
+    check (status <> 'published' or char_length(trim(content_markdown)) >= 20),
   unique (book_id, number)
 );
 

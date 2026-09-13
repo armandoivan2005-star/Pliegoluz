@@ -2,7 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import { books as fallbackBooks, getBook, type Book } from "@/lib/library";
+import { books as fallbackBooks, getBook, type Book, type Chapter } from "@/lib/library";
 import { createClient } from "@/lib/supabase/server";
 
 type BookRow = {
@@ -29,8 +29,17 @@ export function publicCoverUrl(path: string | null) {
 type ChapterRow = {
   number: number;
   title: string;
-  content_markdown: string;
+  content_markdown?: string;
   reading_minutes: number;
+};
+
+export type PublishedReaderChapter = {
+  book: Book;
+  chapter: Chapter;
+  chapterPosition: number;
+  totalChapters: number;
+  previousChapterNumber: number | null;
+  nextChapterNumber: number | null;
 };
 
 export type LatestPublishedChapter = {
@@ -95,12 +104,22 @@ function mergePublishedBook(book: BookRow, chapters: ChapterRow[], fallback?: Bo
   };
 }
 
+function fallbackOrThrow<T>(fallback: T, message: string, caught?: unknown): T {
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(message, caught instanceof Error ? caught.message : caught ?? "");
+    return fallback;
+  }
+
+  console.error(message, caught instanceof Error ? { name: caught.name, message: caught.message } : caught);
+  throw new Error(message);
+}
+
 const getPublishedBookFromDatabase = async (slug: string): Promise<Book | undefined> => {
   const fallback = getBook(slug);
 
   try {
     const supabase = await createClient();
-    if (!supabase) return fallback;
+    if (!supabase) return fallbackOrThrow(fallback, "Supabase no está configurado para la biblioteca pública.");
 
     const { data: book, error: bookError } = await supabase
       .from("books")
@@ -109,28 +128,29 @@ const getPublishedBookFromDatabase = async (slug: string): Promise<Book | undefi
       .eq("status", "published")
       .maybeSingle<BookRow>();
 
-    if (bookError || !book) return fallback;
+    if (bookError) throw bookError;
+    if (!book) return undefined;
 
     const { data: chapters, error: chaptersError } = await supabase
       .from("chapters")
-      .select("number, title, content_markdown, reading_minutes")
+      .select("number, title, reading_minutes")
       .eq("book_id", book.id)
       .eq("status", "published")
       .order("number", { ascending: false })
       .returns<ChapterRow[]>();
 
-    if (chaptersError) return fallback;
+    if (chaptersError) throw chaptersError;
 
     return mergePublishedBook(book, chapters ?? [], fallback);
-  } catch {
-    return fallback;
+  } catch (caught) {
+    return fallbackOrThrow(fallback, "No se pudo cargar el libro publicado.", caught);
   }
 };
 
 const getPublishedBooksFromDatabase = async (): Promise<Book[]> => {
   try {
     const supabase = await createClient();
-    if (!supabase) return fallbackBooks;
+    if (!supabase) return fallbackOrThrow(fallbackBooks, "Supabase no está configurado para la biblioteca pública.");
 
     const { data: publishedBooks, error: booksError } = await supabase
       .from("books")
@@ -139,24 +159,86 @@ const getPublishedBooksFromDatabase = async (): Promise<Book[]> => {
       .order("updated_at", { ascending: false })
       .returns<BookRow[]>();
 
-    if (booksError) return fallbackBooks;
+    if (booksError) throw booksError;
     if (!publishedBooks?.length) return [];
 
     const bookIds = publishedBooks.map((book) => book.id);
     const { data: chapters, error: chaptersError } = await supabase
       .from("chapters")
-      .select("book_id, number, title, content_markdown, reading_minutes")
+      .select("book_id, number, title, reading_minutes")
       .in("book_id", bookIds)
       .eq("status", "published")
       .order("number", { ascending: false })
       .returns<Array<ChapterRow & { book_id: string }>>();
 
-    if (chaptersError) return fallbackBooks;
+    if (chaptersError) throw chaptersError;
     return publishedBooks.map((book) =>
       mergePublishedBook(book, (chapters ?? []).filter((chapter) => chapter.book_id === book.id), getBook(book.slug)),
     );
-  } catch {
-    return fallbackBooks;
+  } catch (caught) {
+    return fallbackOrThrow(fallbackBooks, "No se pudo cargar la biblioteca pública.", caught);
+  }
+};
+
+const getPublishedReaderChapterFromDatabase = async (
+  slug: string,
+  chapterNumber: number,
+): Promise<PublishedReaderChapter | undefined> => {
+  const book = await getPublishedBook(slug);
+  if (!book) return undefined;
+
+  const orderedChapters = [...book.chapters].sort((a, b) => a.number - b.number);
+  const chapterPosition = orderedChapters.findIndex((chapter) => chapter.number === chapterNumber);
+  if (chapterPosition === -1) return undefined;
+
+  const chapterSummary = orderedChapters[chapterPosition];
+  const previewResult: PublishedReaderChapter = {
+    book,
+    chapter: chapterSummary,
+    chapterPosition: chapterPosition + 1,
+    totalChapters: orderedChapters.length,
+    previousChapterNumber: orderedChapters[chapterPosition - 1]?.number ?? null,
+    nextChapterNumber: orderedChapters[chapterPosition + 1]?.number ?? null,
+  };
+
+  try {
+    const supabase = await createClient();
+    if (!supabase) {
+      return fallbackOrThrow(previewResult, "Supabase no está configurado para cargar el capítulo.");
+    }
+
+    const { data: databaseBook, error: bookError } = await supabase
+      .from("books")
+      .select("id")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle<{ id: string }>();
+
+    if (bookError) throw bookError;
+    if (!databaseBook) return undefined;
+
+    const { data: chapter, error: chapterError } = await supabase
+      .from("chapters")
+      .select("number, title, content_markdown, reading_minutes")
+      .eq("book_id", databaseBook.id)
+      .eq("number", chapterNumber)
+      .eq("status", "published")
+      .maybeSingle<Required<ChapterRow>>();
+
+    if (chapterError) throw chapterError;
+    if (!chapter) return undefined;
+
+    return {
+      ...previewResult,
+      chapter: {
+        ...chapterSummary,
+        title: chapter.title,
+        readingMinutes: chapter.reading_minutes,
+        contentMarkdown: chapter.content_markdown,
+      },
+    };
+  } catch (caught) {
+    return fallbackOrThrow(previewResult, "No se pudo cargar el capítulo publicado.", caught);
   }
 };
 
@@ -201,8 +283,9 @@ const getLatestPublishedChaptersFromDatabase = async (limit = 50): Promise<Lates
         publishedAt: chapter.published_at,
       }] : [];
     });
-  } catch {
-    return fallbackBooks
+  } catch (caught) {
+    return fallbackOrThrow(
+      fallbackBooks
       .flatMap((book) => book.chapters.map((chapter) => ({
         bookSlug: book.slug,
         bookTitle: book.title,
@@ -212,7 +295,10 @@ const getLatestPublishedChaptersFromDatabase = async (limit = 50): Promise<Lates
         readingMinutes: chapter.readingMinutes,
         publishedAt: null,
       })))
-      .slice(0, safeLimit);
+      .slice(0, safeLimit),
+      "No se pudieron cargar los capítulos recientes.",
+      caught,
+    );
   }
 };
 
@@ -227,6 +313,10 @@ export const getPublishedBook = cache(
 
 export const getPublishedBooks = cache(
   unstable_cache(getPublishedBooksFromDatabase, ["published-books"], publicCacheOptions),
+);
+
+export const getPublishedReaderChapter = cache(
+  unstable_cache(getPublishedReaderChapterFromDatabase, ["published-reader-chapter"], publicCacheOptions),
 );
 
 export const getLatestPublishedChapters = cache(

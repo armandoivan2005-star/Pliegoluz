@@ -5,6 +5,7 @@ import { BookCover } from "@/components/book-cover";
 import { ArrowRightIcon, BookOpenIcon, UserIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getProfileLibrary } from "@/lib/user-library";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +17,14 @@ export default async function ProfilePage({ searchParams }: PageProps<"/perfil">
   const [params, { identity, books }] = await Promise.all([searchParams, getProfileLibrary()]);
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
   return (
-    <div className="min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
+    <div className="site-theme min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
         {error && <p className="mb-6 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
         <section className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-white/[.025] p-6 sm:flex-row sm:items-center sm:p-8">
           <span className="grid size-16 place-items-center rounded-full border border-[#c6a86d]/35 bg-[#151816] text-[#d6b978]"><UserIcon className="size-7" /></span>
           <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[.22em] text-[#aa8c57]">{roleLabels[identity.role]}</p><h1 className="mt-2 truncate font-serif text-3xl">{identity.displayName}</h1><p className="mt-1 text-sm text-[#817f78]">{identity.email}</p></div>
-          <div className="flex gap-3 sm:ml-auto">{identity.role !== "reader" && <Link href="/dashboard" className="rounded-full bg-[#e8ddc6] px-5 py-3 text-sm font-semibold text-[#171816]">Panel editorial</Link>}<form action={logoutAction}><button className="rounded-full border border-white/15 px-5 py-3 text-sm text-[#ddd6ca]">Cerrar sesión</button></form></div>
+          <div className="flex flex-wrap gap-3 sm:ml-auto"><ThemeToggle />{identity.role !== "reader" && <Link href="/dashboard" className="rounded-full bg-[#e8ddc6] px-5 py-3 text-sm font-semibold text-[#171816]">Panel editorial</Link>}<form action={logoutAction}><button className="h-12 rounded-full border border-white/15 px-5 text-sm text-[#ddd6ca]">Cerrar sesión</button></form></div>
         </section>
 
         <section className="mt-14">

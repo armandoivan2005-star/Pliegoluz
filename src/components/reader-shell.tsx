@@ -10,10 +10,13 @@ type ReaderShellProps = {
   bookSlug: string;
   bookTitle: string;
   chapterNumber: number;
+  chapterPosition: number;
   chapterRoman: string;
   chapterTitle: string;
   paragraphs: string[];
   totalChapters: number;
+  previousChapterNumber: number | null;
+  nextChapterNumber: number | null;
   isPreview: boolean;
   canSyncProgress: boolean;
 };
@@ -25,7 +28,7 @@ const themeClasses: Record<Theme, string> = {
 };
 
 export function ReaderShell(props: ReaderShellProps) {
-  const { bookSlug, bookTitle, chapterNumber, chapterRoman, chapterTitle, paragraphs, totalChapters, isPreview, canSyncProgress } = props;
+  const { bookSlug, bookTitle, chapterNumber, chapterPosition, chapterRoman, chapterTitle, paragraphs, totalChapters, previousChapterNumber, nextChapterNumber, isPreview, canSyncProgress } = props;
   const firstTextParagraph = 0;
   const [fontSize, setFontSize] = useState(20);
   const [wide, setWide] = useState(false);
@@ -154,7 +157,7 @@ export function ReaderShell(props: ReaderShellProps) {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${themeClasses[theme]}`}>
-      <div className="fixed inset-x-0 top-0 z-50 h-1 bg-black/8"><div className="h-full bg-[#a77b38]" style={{ width: `${(chapterNumber / totalChapters) * 100}%` }} /></div>
+      <div className="fixed inset-x-0 top-0 z-50 h-1 bg-black/8"><div className="h-full bg-[#a77b38]" style={{ width: `${(chapterPosition / totalChapters) * 100}%` }} /></div>
       <header className="sticky top-0 z-40 border-b border-current/10 bg-[color:inherit] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6">
           <Link href={`/libros/${bookSlug}`} aria-label="Volver al libro" className="grid size-10 place-items-center rounded-full transition hover:bg-black/6"><ArrowLeftIcon className="size-5" /></Link>
@@ -200,8 +203,8 @@ export function ReaderShell(props: ReaderShellProps) {
         </article>
 
         <nav className="mt-20 grid gap-3 border-t border-current/10 pt-8 sm:grid-cols-2">
-          {chapterNumber > 1 ? <Link href={`/leer/${bookSlug}/${chapterNumber - 1}`} className="group flex items-center gap-3 rounded-xl border border-current/10 p-4 transition hover:border-[#a77b38]/50"><ArrowLeftIcon className="size-5" /><div><p className="text-xs opacity-50">Anterior</p><p className="mt-1 text-sm">Capítulo {chapterNumber - 1}</p></div></Link> : <div />}
-          {chapterNumber < totalChapters && <Link href={`/leer/${bookSlug}/${chapterNumber + 1}`} className="group flex items-center justify-end gap-3 rounded-xl border border-current/10 p-4 text-right transition hover:border-[#a77b38]/50"><div><p className="text-xs opacity-50">Siguiente</p><p className="mt-1 text-sm">Capítulo {chapterNumber + 1}</p></div><ArrowRightIcon className="size-5" /></Link>}
+          {previousChapterNumber !== null ? <Link href={`/leer/${bookSlug}/${previousChapterNumber}`} className="group flex items-center gap-3 rounded-xl border border-current/10 p-4 transition hover:border-[#a77b38]/50"><ArrowLeftIcon className="size-5" /><div><p className="text-xs opacity-50">Anterior</p><p className="mt-1 text-sm">Capítulo {previousChapterNumber}</p></div></Link> : <div />}
+          {nextChapterNumber !== null && <Link href={`/leer/${bookSlug}/${nextChapterNumber}`} className="group flex items-center justify-end gap-3 rounded-xl border border-current/10 p-4 text-right transition hover:border-[#a77b38]/50"><div><p className="text-xs opacity-50">Siguiente</p><p className="mt-1 text-sm">Capítulo {nextChapterNumber}</p></div><ArrowRightIcon className="size-5" /></Link>}
         </nav>
       </main>
     </div>

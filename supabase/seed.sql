@@ -47,15 +47,16 @@ select
   chapter_number,
   'Capítulo ' || trim(to_char(chapter_number, 'RN')),
   '',
-  'published',
+  'draft',
   11 + (chapter_number % 7),
-  now()
+  null
 from public.books as book
 cross join generate_series(1, 41) as chapter_number
 where book.slug = 'casa-reykov'
 on conflict (book_id, number) do update set
   title = excluded.title,
-  status = excluded.status,
+  status = case when char_length(trim(chapters.content_markdown)) < 20 then excluded.status else chapters.status end,
+  published_at = case when char_length(trim(chapters.content_markdown)) < 20 then null else chapters.published_at end,
   reading_minutes = excluded.reading_minutes,
   updated_at = now();
 

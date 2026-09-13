@@ -67,16 +67,12 @@ export async function POST(request: NextRequest) {
     paragraph_offset: Math.round(paragraphOffset * 100000) / 100000,
     updated_at: new Date().toISOString(),
   };
-  const { data: current } = await supabase
+  const result = await supabase
     .from("reading_progress")
-    .select("book_id")
-    .eq("profile_id", identity.id)
-    .eq("book_id", book.id)
-    .maybeSingle<{ book_id: string }>();
-
-  const result = current
-    ? await supabase.from("reading_progress").update(payload).eq("profile_id", identity.id).eq("book_id", book.id)
-    : await supabase.from("reading_progress").insert({ profile_id: identity.id, book_id: book.id, ...payload });
+    .upsert(
+      { profile_id: identity.id, book_id: book.id, ...payload },
+      { onConflict: "profile_id,book_id" },
+    );
 
   if (result.error) {
     return NextResponse.json({ error: "No se pudo guardar el progreso. Ejecuta la migración pendiente." }, { status: 500 });

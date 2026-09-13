@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: PageProps<"/libros/[slug]">):
   const { slug } = await params;
   const book = await getPublishedBook(slug);
   if (!book) return {};
-  return { title: `${book.title} | Pliegoluz`, description: book.description };
+  return { title: book.title, description: book.description };
 }
 
 export default async function BookPage({ params, searchParams }: PageProps<"/libros/[slug]">) {
@@ -26,9 +26,13 @@ export default async function BookPage({ params, searchParams }: PageProps<"/lib
   const orderedChapters = [...book.chapters].sort((a, b) =>
     chapterOrder === "asc" ? a.number - b.number : b.number - a.number,
   );
+  const firstChapterNumber = book.chapters.reduce<number | null>(
+    (first, chapter) => first === null ? chapter.number : Math.min(first, chapter.number),
+    null,
+  );
 
   return (
-    <div className="min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
+    <div className="site-theme min-h-screen bg-[#0b0e0d] text-[#f5efe3]">
       <SiteHeader />
       <main>
         <section className="hero-texture border-b border-white/8">
@@ -45,7 +49,7 @@ export default async function BookPage({ params, searchParams }: PageProps<"/lib
                 <span>{book.author}</span><span>{book.status}</span><span>{book.chapters.length} capítulos</span>
               </div>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href={`/leer/${book.slug}/1`} className="group inline-flex h-13 items-center justify-center gap-3 rounded-full bg-[#e8ddc6] px-6 text-sm font-semibold text-[#171816] transition hover:bg-white"><BookOpenIcon className="size-4" />Leer desde el inicio<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" /></Link>
+                {firstChapterNumber !== null && <Link href={`/leer/${book.slug}/${firstChapterNumber}`} className="group inline-flex h-13 items-center justify-center gap-3 rounded-full bg-[#e8ddc6] px-6 text-sm font-semibold text-[#171816] transition hover:bg-white"><BookOpenIcon className="size-4" />Leer desde el inicio<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" /></Link>}
                 {readingPosition && (
                   <Link href={`/leer/${book.slug}/${readingPosition.chapterNumber}?pos=${readingPosition.paragraphIndex}&offset=${readingPosition.paragraphOffset.toFixed(5)}`} className="group inline-flex h-13 items-center justify-center gap-3 rounded-full border border-[#c6a86d]/45 px-6 text-sm font-semibold text-[#dfc88f] transition hover:border-[#c6a86d] hover:bg-[#c6a86d]/8">
                     Continuar donde te quedaste<ArrowRightIcon className="size-4 transition group-hover:translate-x-1" />

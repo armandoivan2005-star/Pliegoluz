@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { updateBookAction } from "@/app/dashboard/actions";
 import { ChapterBulkList } from "@/components/chapter-bulk-list";
 import { BookEditorForm, EditorNotice } from "@/components/editor-forms";
-import { ArrowLeftIcon, BookOpenIcon } from "@/components/icons";
+import { ArrowLeftIcon, BookOpenIcon, DownloadIcon } from "@/components/icons";
 import { getEditorBook, type PublicationStatus } from "@/lib/editorial";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,7 @@ export default async function EditBookPage({ params, searchParams }: { params: P
   const { book, chapters } = await getEditorBook(bookId);
   if (!book) notFound();
   const updateBook = updateBookAction.bind(null, book.id);
+  const canDownloadPdf = chapters.some((chapter) => chapter.status !== "archived" && chapter.content_markdown.trim());
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -22,6 +23,7 @@ export default async function EditBookPage({ params, searchParams }: { params: P
       <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-semibold uppercase tracking-[.22em] text-[#98783f]">Editar obra</p><h1 className="mt-2 font-serif text-4xl sm:text-5xl">{book.title}</h1><p className="mt-2 text-sm text-black/45">/{book.slug} · {statusLabels[book.status]}</p></div>
         <div className="flex flex-wrap gap-3">
+          {canDownloadPdf && <a href={`/api/dashboard/libros/${book.id}/pdf`} download={`${book.slug}.pdf`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-semibold"><DownloadIcon className="size-4" />Descargar PDF</a>}
           <Link href={`/dashboard/libros/${book.id}/importar`} className="inline-flex h-11 items-center justify-center rounded-xl bg-[#20241f] px-4 text-sm font-semibold text-white">Importar PDF completo</Link>
           {book.status === "published" && <Link href={`/libros/${book.slug}`} target="_blank" className="inline-flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white px-4 text-sm">Ver publicación ↗</Link>}
         </div>

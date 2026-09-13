@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Crear cuenta" };
 
 export default function RegisterPage() {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#0b0e0d] px-5 py-12 text-[#f5efe3]">
+    <main className="site-theme grid min-h-screen place-items-center bg-[#0b0e0d] px-5 py-12 text-[#f5efe3]">
       <div className="w-full max-w-md">
         <Link href="/" className="font-serif text-xl tracking-[.22em] text-[#d5bd87]">PLIEGOLUZ</Link>
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#121513] p-7 shadow-2xl sm:p-9">

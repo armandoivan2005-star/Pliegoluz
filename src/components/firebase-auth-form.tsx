@@ -15,10 +15,56 @@ import {
   updateProfile,
   type User,
 } from "firebase/auth";
+import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { getFirebaseBrowserAuth } from "@/lib/firebase/client";
 
 type AuthMode = "login" | "register";
 type SessionResponse = { role?: "reader" | "author" | "admin"; error?: string };
+
+type PasswordFieldProps = {
+  autoComplete: "current-password" | "new-password";
+  id: string;
+  label: string;
+  minLength: number;
+  name: "password" | "password_confirmation";
+};
+
+function PasswordField({ autoComplete, id, label, minLength, name }: PasswordFieldProps) {
+  const [visible, setVisible] = useState(false);
+  const fieldDescription = name === "password_confirmation" ? "la confirmación de contraseña" : "la contraseña";
+  const actionLabel = `${visible ? "Ocultar" : "Mostrar"} ${fieldDescription}`;
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm text-[#c7c0b4]">{label}</label>
+      <div className="relative mt-2">
+        <input
+          id={id}
+          name={name}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          autoCapitalize="none"
+          autoCorrect="off"
+          minLength={minLength}
+          required
+          spellCheck={false}
+          className="h-12 w-full rounded-xl border border-white/12 bg-black/20 px-4 pr-12 text-white outline-none transition focus:border-[#c6a86d]/70"
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          aria-controls={id}
+          aria-label={actionLabel}
+          aria-pressed={visible}
+          title={actionLabel}
+          className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-xl text-[#88857e] transition hover:text-[#d5bd87] focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#c6a86d]"
+        >
+          {visible ? <EyeOffIcon className="size-5" /> : <EyeIcon className="size-5" />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function firebaseMessage(error: unknown) {
   if (!(error instanceof FirebaseError)) return "No se pudo completar el acceso. Inténtalo otra vez.";
@@ -150,13 +196,9 @@ export function FirebaseAuthForm({ mode, initialError }: { mode: AuthMode; initi
         <label className="block text-sm text-[#c7c0b4]">Correo
           <input name="email" type="email" autoComplete="email" required className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-black/20 px-4 text-white outline-none transition focus:border-[#c6a86d]/70" />
         </label>
-        <label className="block text-sm text-[#c7c0b4]">Contraseña
-          <input name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={mode === "register" ? 8 : 6} required className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-black/20 px-4 text-white outline-none transition focus:border-[#c6a86d]/70" />
-        </label>
+        <PasswordField id="auth-password" name="password" label="Contraseña" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength={mode === "register" ? 8 : 6} />
         {mode === "register" && (
-          <label className="block text-sm text-[#c7c0b4]">Confirmar contraseña
-            <input name="password_confirmation" type="password" autoComplete="new-password" minLength={8} required className="mt-2 h-12 w-full rounded-xl border border-white/12 bg-black/20 px-4 text-white outline-none transition focus:border-[#c6a86d]/70" />
-          </label>
+          <PasswordField id="auth-password-confirmation" name="password_confirmation" label="Confirmar contraseña" autoComplete="new-password" minLength={8} />
         )}
         <button disabled={pending} className="h-12 w-full rounded-xl bg-[#e8ddc6] text-sm font-semibold text-[#171816] transition hover:bg-white disabled:cursor-wait disabled:opacity-60">
           {pending ? "Procesando…" : mode === "register" ? "Crear cuenta" : "Entrar"}

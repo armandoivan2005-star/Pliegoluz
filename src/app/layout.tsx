@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { NavigationLoadingOverlay } from "@/components/navigation-loading-overlay";
 import "./globals.css";
 
+const themeBootstrapScript = `(function(){try{var key="pliegoluz-theme";var saved=localStorage.getItem(key);var theme=saved==="light"||saved==="dark"?saved:(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch(e){document.documentElement.dataset.theme="dark"}})();`;
+
 export const metadata: Metadata = {
   title: {
     default: "Pliegoluz — Biblioteca digital",
@@ -13,7 +15,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className="h-full antialiased">
+    <html lang="es" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+      </head>
       <body className="min-h-full">
         {children}
         <Suspense fallback={null}>
