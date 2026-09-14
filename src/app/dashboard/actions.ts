@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { repairImportedChapter } from "@/lib/chapter-import";
 import { requireAuthor, requireBookManager } from "@/lib/editor-auth";
 import type { PublicationStatus, WorkStatus } from "@/lib/editorial";
 import { cleanExtractedPdfText } from "@/lib/pdf-text";
@@ -287,6 +288,69 @@ export async function updateChapterAction(bookId: string, chapterId: string, for
   revalidatePath(`/leer/${book.slug}/${current.number}`);
   revalidatePath(`/leer/${book.slug}/${fields.number}`);
   redirect(`${errorPath}?saved=updated`);
+}
+
+type RepairChapterRow = {
+  id: string;
+  book_id: string;
+  number: number;
+  title: string;
+  content_markdown: string;
+  status: PublicationStatus;
+  reading_minutes: number;
+  published_at: string | null;
+  created_at: string;
+};
+
+export async function repairImportedChapterTitlesAction(bookId: string, _formData: FormData) {
+  void _formData;
+  const returnPath = `/dashboard/libros/${bookId}`;
+  const { supabase } = await requireBookManager(bookId);
+  const [{ data: book }, { data: chapters, error: chaptersError }] = await Promise.all([
+    supabase.from("books").select("slug").eq("id", bookId).maybeSingle<{ slug: string }>(),
+    supabase
+      .from("chapters")
+      .select("id, book_id, number, title, content_markdown, status, reading_minutes, published_at, created_at")
+      .eq("book_id", bookId)
+      .order("number", { ascending: true })
+      .limit(1001)
+      .returns<RepairChapterRow[]>(),
+  ]);
+
+  if (!book || chaptersError) formError(returnPath, "No se pudieron revisar los capítulos.");
+  if ((chapters?.length ?? 0) > 1000) formError(returnPath, "La corrección admite un máximo de 1000 capítulos por libro.");
+
+  const now = new Date().toISOString();
+  const repairs = (chapters ?? []).flatMap((chapter) => {
+    const repaired = repairImportedChapter({
+      number: chapter.number,
+      title: chapter.title,
+      content: chapter.content_markdown,
+    });
+
+    if (!repaired.changed) return [];
+    return [{
+      ...chapter,
+      title: repaired.title,
+      content_markdown: repaired.content,
+      reading_minutes: readingMinutes(repaired.content),
+      updated_at: now,
+    }];
+  });
+
+  if (repairs.length) {
+    const { error } = await supabase.from("chapters").upsert(repairs, { onConflict: "id" });
+    if (error) formError(returnPath, "No se pudieron corregir los títulos importados.");
+  }
+
+  updateTag("public-library");
+  revalidatePath("/");
+  revalidatePath("/biblioteca");
+  revalidatePath("/novedades");
+  revalidatePath(returnPath);
+  revalidatePath(`/libros/${book.slug}`);
+  for (const chapter of repairs) revalidatePath(`/leer/${book.slug}/${chapter.number}`);
+  redirect(`${returnPath}?saved=repaired`);
 }
 
 export async function bulkUpdateChaptersAction(bookId: string, formData: FormData) {

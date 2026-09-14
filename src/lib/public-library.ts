@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { repairImportedChapter } from "@/lib/chapter-import";
 import { books as fallbackBooks, getBook, type Book, type Chapter } from "@/lib/library";
 import { createClient } from "@/lib/supabase/server";
 
@@ -228,13 +229,19 @@ const getPublishedReaderChapterFromDatabase = async (
     if (chapterError) throw chapterError;
     if (!chapter) return undefined;
 
+    const repairedChapter = repairImportedChapter({
+      number: chapter.number,
+      title: chapter.title,
+      content: chapter.content_markdown,
+    });
+
     return {
       ...previewResult,
       chapter: {
         ...chapterSummary,
-        title: chapter.title,
+        title: repairedChapter.title,
         readingMinutes: chapter.reading_minutes,
-        contentMarkdown: chapter.content_markdown,
+        contentMarkdown: repairedChapter.content,
       },
     };
   } catch (caught) {

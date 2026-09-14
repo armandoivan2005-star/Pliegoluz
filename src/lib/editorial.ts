@@ -1,5 +1,6 @@
 import "server-only";
 
+import { repairImportedChapter } from "@/lib/chapter-import";
 import { requireAuthor, requireBookManager } from "@/lib/editor-auth";
 
 export type PublicationStatus = "draft" | "published" | "archived";
@@ -41,6 +42,20 @@ export type EditorBook = {
   updated_at: string;
 };
 
+function repairEditorChapter(chapter: EditorChapter): EditorChapter {
+  const repaired = repairImportedChapter({
+    number: chapter.number,
+    title: chapter.title,
+    content: chapter.content_markdown,
+  });
+
+  return {
+    ...chapter,
+    title: repaired.title,
+    content_markdown: repaired.content,
+  };
+}
+
 export async function getEditorBooks() {
   const { supabase, identity } = await requireAuthor();
   let query = supabase
@@ -69,7 +84,7 @@ export async function getEditorBook(bookId: string) {
     .returns<EditorChapter[]>();
 
   if (bookError || chaptersError) throw new Error("No se pudo cargar la obra editorial.");
-  return { book, chapters: chapters ?? [] };
+  return { book, chapters: (chapters ?? []).map(repairEditorChapter) };
 }
 
 export async function getEditorChapter(bookId: string, chapterId: string) {
@@ -82,5 +97,5 @@ export async function getEditorChapter(bookId: string, chapterId: string) {
     .maybeSingle<EditorChapter>();
 
   if (error) throw new Error("No se pudo cargar el capítulo.");
-  return data;
+  return data ? repairEditorChapter(data) : null;
 }

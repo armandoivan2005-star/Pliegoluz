@@ -67,15 +67,37 @@ export async function POST(request: NextRequest) {
     paragraph_offset: Math.round(paragraphOffset * 100000) / 100000,
     updated_at: new Date().toISOString(),
   };
-  const result = await supabase
+  const target = supabase
     .from("reading_progress")
-    .upsert(
-      { profile_id: identity.id, book_id: book.id, ...payload },
-      { onConflict: "profile_id,book_id" },
-    );
+    .update(payload)
+    .eq("profile_id", identity.id)
+    .eq("book_id", book.id)
+    .select("profile_id")
+    .maybeSingle<{ profile_id: string }>();
+  const updateResult = await target;
+  let persistenceError = updateResult.error;
 
-  if (result.error) {
-    return NextResponse.json({ error: "No se pudo guardar el progreso. Ejecuta la migración pendiente." }, { status: 500 });
+  if (!persistenceError && !updateResult.data) {
+    const insertResult = await supabase
+      .from("reading_progress")
+      .insert({ profile_id: identity.id, book_id: book.id, ...payload });
+
+    if (insertResult.error?.code === "23505") {
+      // Otra solicitud pudo insertar la primera posición al mismo tiempo.
+      const retryResult = await supabase
+        .from("reading_progress")
+        .update(payload)
+        .eq("profile_id", identity.id)
+        .eq("book_id", book.id);
+      persistenceError = retryResult.error;
+    } else {
+      persistenceError = insertResult.error;
+    }
+  }
+
+  if (persistenceError) {
+    console.error("Reading progress persistence failed", { code: persistenceError.code });
+    return NextResponse.json({ error: "No se pudo guardar el progreso." }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

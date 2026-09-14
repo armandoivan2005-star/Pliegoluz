@@ -1,5 +1,6 @@
 import { getCurrentUserIdentity } from "@/lib/editor-auth";
 import { createBookPdf } from "@/lib/book-pdf";
+import { repairImportedChapter } from "@/lib/chapter-import";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -77,11 +78,19 @@ export async function GET(_request: Request, context: RouteContext<"/api/dashboa
 
   const chapters = (chapterRows ?? [])
     .filter((chapter) => chapter.content_markdown.trim())
-    .map((chapter) => ({
-      number: chapter.number,
-      title: chapter.title,
-      content: chapter.content_markdown,
-    }));
+    .map((chapter) => {
+      const repaired = repairImportedChapter({
+        number: chapter.number,
+        title: chapter.title,
+        content: chapter.content_markdown,
+      });
+
+      return {
+        number: repaired.number,
+        title: repaired.title,
+        content: repaired.content,
+      };
+    });
 
   if (!chapters.length) return errorResponse("El libro todavía no tiene capítulos con contenido.", 409);
   if ((chapterRows?.length ?? 0) > MAX_EXPORT_CHAPTERS) {
