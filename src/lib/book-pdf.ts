@@ -1,6 +1,7 @@
 import "server-only";
 
 import PDFDocument from "pdfkit";
+import { cleanExtractedPdfText } from "@/lib/pdf-text";
 
 export type BookPdfChapter = {
   number: number;
@@ -34,8 +35,8 @@ function cleanPdfText(value: string) {
     .trim();
 }
 
-function chapterParagraphs(content: string) {
-  const cleaned = cleanPdfText(content);
+function chapterParagraphs(content: string, chapterNumber: number) {
+  const cleaned = cleanPdfText(cleanExtractedPdfText(content, chapterNumber));
   if (!cleaned) return [];
 
   return cleaned
@@ -171,7 +172,7 @@ function addChapter(doc: PDFKit.PDFDocument, chapter: BookPdfChapter) {
     .stroke()
     .moveDown(2);
 
-  const paragraphs = chapterParagraphs(chapter.content);
+  const paragraphs = chapterParagraphs(chapter.content, chapter.number);
   for (const paragraph of paragraphs) {
     doc.fillColor(INK).font("Times-Roman").fontSize(10.5);
 

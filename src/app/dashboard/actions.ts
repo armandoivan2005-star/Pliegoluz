@@ -183,7 +183,7 @@ export async function updateBookAction(bookId: string, formData: FormData) {
   redirect(`${errorPath}?saved=updated`);
 }
 
-async function pdfContent(formData: FormData, errorPath: string) {
+async function pdfContent(formData: FormData, errorPath: string, chapterNumber: number) {
   const file = formData.get("pdf_file");
   if (!(file instanceof File) || file.size === 0) return null;
 
@@ -206,16 +206,16 @@ async function pdfContent(formData: FormData, errorPath: string) {
     await parser.destroy();
   }
 
-  const content = cleanExtractedPdfText(extractedText);
+  const content = cleanExtractedPdfText(extractedText, chapterNumber);
   if (content.length < 20) formError(errorPath, "No se pudo extraer suficiente texto del PDF.");
   return { content, fileName: file.name };
 }
 
 async function validateChapter(formData: FormData, errorPath: string) {
   const number = Number(value(formData, "number"));
-  const extractedPdf = await pdfContent(formData, errorPath);
+  const extractedPdf = await pdfContent(formData, errorPath, number);
   const title = value(formData, "title") || extractedPdf?.fileName.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").trim() || "";
-  const content = extractedPdf?.content ?? String(formData.get("content_markdown") ?? "").trim();
+  const content = cleanExtractedPdfText(extractedPdf?.content ?? String(formData.get("content_markdown") ?? ""), number);
   const status = statusValue(formData);
 
   if (!Number.isInteger(number) || number < 1) formError(errorPath, "El número de capítulo debe ser un entero mayor que cero.");

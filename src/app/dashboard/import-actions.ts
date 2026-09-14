@@ -70,7 +70,7 @@ function splitChapters(text: string): ImportedChapterDraft[] {
       title = lines[bodyStart] || `Capítulo ${start.number}`;
       bodyStart += 1;
     }
-    const content = lines.slice(bodyStart, end).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    const content = cleanExtractedPdfText(lines.slice(bodyStart, end).join("\n"), start.number);
     return { number: start.number, title: title.slice(0, 180), content };
   });
 
@@ -96,7 +96,7 @@ export async function importBookChaptersAction(bookId: string, formData: FormDat
   const { supabase } = await requireBookManager(bookId);
   const numbers = formData.getAll("number").map(Number);
   const titles = formData.getAll("title").map((value) => String(value).trim());
-  const contents = formData.getAll("content").map((value) => cleanExtractedPdfText(String(value)));
+  const contents = formData.getAll("content").map((value, index) => cleanExtractedPdfText(String(value), numbers[index]));
   const statusValue = String(formData.get("status") ?? "draft") as PublicationStatus;
   const status = statuses.includes(statusValue) ? statusValue : "draft";
   const conflictMode = formData.get("conflict_mode") === "replace" ? "replace" : "skip";

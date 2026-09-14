@@ -89,7 +89,7 @@ export const readerPreview = [
 ];
 
 export function getChapterParagraphs(chapter: Chapter) {
-  const paragraphs = cleanExtractedPdfText(chapter.contentMarkdown ?? "")
+  const paragraphs = cleanExtractedPdfText(chapter.contentMarkdown ?? "", chapter.number)
     ?.split(/\r?\n\s*\r?\n/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph && paragraph !== "u" && paragraph !== "◆");
