@@ -10,6 +10,14 @@ import { SubmitButton } from "@/components/submit-button";
 
 const initialState: PdfImportState = { error: "", fileName: "", chapters: [] };
 const inputClass = "mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-[#242620] outline-none focus:border-[#9f7f45]";
+const pdfRequirements = [
+  "Archivo PDF válido, sin contraseña y con un tamaño máximo de 10 MB.",
+  "El texto debe poder seleccionarse; un PDF formado únicamente por imágenes escaneadas no se puede importar.",
+  "Cada capítulo debe comenzar en una línea propia con “Capítulo 1” o “Capítulo I”.",
+  "Coloca el título justo después del encabezado. Si ocupa varias líneas, escríbelas en mayúsculas para poder unirlas.",
+  "Cada título debe tener entre 2 y 180 caracteres y cada capítulo al menos 20 caracteres de contenido.",
+  "El archivo puede contener hasta 50 capítulos distintos y no debe repetir números de capítulo.",
+];
 
 export function BulkPdfImport({ bookId }: { bookId: string }) {
   const analyze = analyzeBookPdfAction.bind(null, bookId);
@@ -20,7 +28,32 @@ export function BulkPdfImport({ bookId }: { bookId: string }) {
     <div className="space-y-8">
       <form action={analyzeAction} className="rounded-2xl border border-black/8 bg-white p-6 sm:p-8">
         <h2 className="font-serif text-2xl">Seleccionar PDF</h2>
-        <p className="mt-2 text-sm leading-6 text-black/50">Detecta encabezados como “Capítulo 1” o “Capítulo I”. El PDF debe contener texto seleccionable y un máximo de 50 capítulos.</p>
+        <p className="mt-2 text-sm leading-6 text-black/50">Comprueba estas condiciones antes de analizar el archivo para que los capítulos se detecten correctamente.</p>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+          <section aria-labelledby="pdf-requirements-title" className="rounded-xl border border-black/8 bg-[#faf9f6] p-5">
+            <h3 id="pdf-requirements-title" className="text-sm font-semibold">Requisitos del PDF</h3>
+            <ul className="mt-4 space-y-3">
+              {pdfRequirements.map((requirement, index) => (
+                <li key={requirement} className="flex gap-3 text-sm leading-5 text-[color:var(--editor-muted)]">
+                  <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full bg-[color:var(--editor-border)] text-xs font-semibold text-[color:var(--editor-accent)]">{index + 1}</span>
+                  <span>{requirement}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <aside className="rounded-xl border border-black/10 bg-[#faf9f6] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[color:var(--editor-accent)]">Formato recomendado</p>
+            <pre className="mt-4 overflow-x-auto whitespace-pre-wrap rounded-lg border border-black/8 bg-white p-4 font-serif text-sm leading-6 text-[#242620]">{`CAPÍTULO XXXVII
+REY O COMANDANTE, ¿POR QUÉ
+NO AMBOS?
+
+El amanecer encontró a Darian...`}</pre>
+            <p className="mt-3 text-xs leading-5 text-[color:var(--editor-muted)]">Los indicadores de página como “-- 2 of 226 --” y el cierre “FIN DEL CAPÍTULO” se eliminan automáticamente.</p>
+          </aside>
+        </div>
+
         {state.error && <p role="alert" className="mt-5 rounded-xl border border-red-700/15 bg-red-50 px-4 py-3 text-sm text-red-800">{state.error}</p>}
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end">
           <label className="min-w-0 flex-1 text-sm font-medium">Archivo PDF<input className={`${inputClass} file:mr-4 file:rounded-lg file:border-0 file:bg-[#20241f] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white`} name="pdf_file" type="file" accept=".pdf,application/pdf" required /></label>

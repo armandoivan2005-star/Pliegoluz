@@ -75,7 +75,7 @@ export default async function BookPage({ params, searchParams }: PageProps<"/lib
           <div className="grid gap-3 sm:grid-cols-2">
             {orderedChapters.map((chapter) => (
               <Link key={chapter.number} href={`/leer/${book.slug}/${chapter.number}`} className="group flex items-center gap-4 rounded-xl border border-white/8 bg-white/[.018] p-4 transition hover:border-[#b99a61]/35 hover:bg-white/[.035]">
-                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-[#171a18] font-serif text-sm text-[#c6a86d]">{chapter.roman}</span>
+                <span className="grid h-11 min-w-11 shrink-0 place-items-center rounded-lg bg-[#171a18] px-2 font-serif text-xs text-[#c6a86d]">{chapter.roman}</span>
                 <div className="min-w-0"><h3 className="truncate text-sm font-medium text-[#e7e1d6]">{chapter.title}</h3><p className="mt-1 flex items-center gap-1.5 text-xs text-[#77746d]"><ClockIcon className="size-3" />{chapter.readingMinutes} min · {chapter.publishedAt}</p></div>
                 <ArrowRightIcon className="ml-auto size-4 shrink-0 text-[#6f6d67] transition group-hover:translate-x-1 group-hover:text-[#c6a86d]" />
               </Link>
