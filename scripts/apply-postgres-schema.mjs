@@ -1,9 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import pg from "pg";
 
+const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
 const { Client } = pg;
 const connectionString = process.env.DATABASE_URL;
