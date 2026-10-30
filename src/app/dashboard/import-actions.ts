@@ -6,6 +6,7 @@ import { splitImportedBookChapters, type ImportedChapterDraft } from "@/lib/chap
 import { requireBookManager } from "@/lib/editor-auth";
 import { cleanExtractedPdfText } from "@/lib/pdf-text";
 import type { PublicationStatus } from "@/lib/editorial";
+import { withTransaction } from "@/lib/postgres";
 
 export type { ImportedChapterDraft };
 export type PdfImportState = { error: string; fileName: string; chapters: ImportedChapterDraft[] };
@@ -41,7 +42,7 @@ export async function analyzeBookPdfAction(bookId: string, _previous: PdfImportS
 }
 
 export async function importBookChaptersAction(bookId: string, formData: FormData) {
-  const { supabase } = await requireBookManager(bookId);
+  const { db } = await requireBookManager(bookId);
   const numbers = formData.getAll("number").map(Number);
   const titles = formData.getAll("title").map((value) => String(value).trim());
   const contents = formData.getAll("content").map((value, index) => cleanExtractedPdfText(String(value), numbers[index]));
@@ -61,28 +62,58 @@ export async function importBookChaptersAction(bookId: string, formData: FormDat
 
   let rows = chapters;
   if (conflictMode === "skip") {
-    const { data: existing } = await supabase.from("chapters").select("number").eq("book_id", bookId).in("number", numbers).returns<Array<{ number: number }>>();
-    const existingNumbers = new Set((existing ?? []).map((chapter) => chapter.number));
+    const existing = await db.query<{ number: number }>(
+      `select number from public.chapters where book_id = $1 and number = any($2::integer[])`,
+      [bookId, numbers],
+    );
+    const existingNumbers = new Set(existing.rows.map((chapter) => chapter.number));
     rows = chapters.filter((chapter) => !existingNumbers.has(chapter.number));
   }
   if (!rows.length) redirect(`${errorPath}?error=${encodeURIComponent("Todos los capítulos detectados ya existen.")}`);
 
   const now = new Date().toISOString();
-  const payload = rows.map((chapter) => ({
-    book_id: bookId,
-    number: chapter.number,
-    title: chapter.title,
-    content_markdown: chapter.content,
-    status,
-    reading_minutes: Math.max(1, Math.ceil(chapter.content.split(/\s+/u).filter(Boolean).length / 220)),
-    published_at: status === "published" ? now : null,
-    updated_at: now,
-  }));
-  const query = conflictMode === "replace"
-    ? supabase.from("chapters").upsert(payload, { onConflict: "book_id,number" })
-    : supabase.from("chapters").insert(payload);
-  const { error } = await query;
-  if (error) redirect(`${errorPath}?error=${encodeURIComponent("No se pudieron importar los capítulos.")}`);
+  try {
+    await withTransaction(async (client) => {
+      for (const chapter of rows) {
+        const values = [
+          bookId,
+          chapter.number,
+          chapter.title,
+          chapter.content,
+          status,
+          Math.max(1, Math.ceil(chapter.content.split(/\s+/u).filter(Boolean).length / 220)),
+          status === "published" ? now : null,
+          now,
+        ];
+        if (conflictMode === "replace") {
+          await client.query(
+            `insert into public.chapters (
+               book_id, number, title, content_markdown, status,
+               reading_minutes, published_at, updated_at
+             ) values ($1, $2, $3, $4, $5, $6, $7, $8)
+             on conflict (book_id, number) do update set
+               title = excluded.title,
+               content_markdown = excluded.content_markdown,
+               status = excluded.status,
+               reading_minutes = excluded.reading_minutes,
+               published_at = excluded.published_at,
+               updated_at = excluded.updated_at`,
+            values,
+          );
+        } else {
+          await client.query(
+            `insert into public.chapters (
+               book_id, number, title, content_markdown, status,
+               reading_minutes, published_at, updated_at
+             ) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            values,
+          );
+        }
+      }
+    });
+  } catch {
+    redirect(`${errorPath}?error=${encodeURIComponent("No se pudieron importar los capítulos.")}`);
+  }
 
   updateTag("public-library");
   revalidatePath("/");

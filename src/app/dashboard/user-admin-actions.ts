@@ -15,27 +15,28 @@ function fail(message: string): never {
 async function targetUser(profileId: string) {
   const context = await requireAdmin();
   if (profileId === context.identity.id) fail("No puedes modificar tu propia cuenta desde este panel.");
-  const { data } = await context.supabase
-    .from("firebase_profiles")
-    .select("id, firebase_uid")
-    .eq("id", profileId)
-    .maybeSingle<{ id: string; firebase_uid: string }>();
-  if (!data) fail("El usuario ya no existe.");
-  return { ...context, target: data };
+  const { rows } = await context.db.query<{ id: string; firebase_uid: string }>(
+    `select id, firebase_uid from public.firebase_profiles where id = $1`,
+    [profileId],
+  );
+  if (!rows[0]) fail("El usuario ya no existe.");
+  return { ...context, target: rows[0] };
 }
 
 export async function updateUserRoleAction(profileId: string, formData: FormData) {
   const role = String(formData.get("role")) as UserRole;
   if (!roles.includes(role)) fail("El rol seleccionado no es válido.");
-  const { supabase, target } = await targetUser(profileId);
-  const { error } = await supabase.from("firebase_profiles").update({ role, updated_at: new Date().toISOString() }).eq("id", target.id);
-  if (error) fail("No se pudo actualizar el rol. Ejecuta la migración de roles en Supabase.");
+  const { db, target } = await targetUser(profileId);
+  await db.query(
+    `update public.firebase_profiles set role = $1, updated_at = now() where id = $2`,
+    [role, target.id],
+  );
   revalidatePath(usersPath);
 }
 
 export async function setUserSuspensionAction(profileId: string, formData: FormData) {
   const suspend = formData.get("suspend") === "true";
-  const { supabase, target } = await targetUser(profileId);
+  const { db, target } = await targetUser(profileId);
   try {
     const auth = getFirebaseAdminAuth();
     await auth.updateUser(target.firebase_uid, { disabled: suspend });
@@ -43,21 +44,25 @@ export async function setUserSuspensionAction(profileId: string, formData: FormD
   } catch {
     fail("No se pudo cambiar el estado de la cuenta en Firebase.");
   }
-  const { error } = await supabase.from("firebase_profiles").update({ suspended_at: suspend ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", target.id);
-  if (error) fail("Firebase se actualizó, pero no se pudo guardar el estado en Supabase.");
+  await db.query(
+    `update public.firebase_profiles
+        set suspended_at = case when $1::boolean then now() else null end,
+            updated_at = now()
+      where id = $2`,
+    [suspend, target.id],
+  );
   revalidatePath(usersPath);
 }
 
 export async function deleteUserAction(profileId: string, formData: FormData) {
   void formData;
-  const { supabase, target } = await targetUser(profileId);
+  const { db, target } = await targetUser(profileId);
   try {
     await getFirebaseAdminAuth().deleteUser(target.firebase_uid);
   } catch (caught) {
     const code = typeof caught === "object" && caught && "code" in caught ? String(caught.code) : "";
     if (code !== "auth/user-not-found") fail("No se pudo eliminar la cuenta de Firebase.");
   }
-  const { error } = await supabase.from("firebase_profiles").delete().eq("id", target.id);
-  if (error) fail("La cuenta se eliminó de Firebase, pero no de Supabase.");
+  await db.query(`delete from public.firebase_profiles where id = $1`, [target.id]);
   revalidatePath(usersPath);
 }

@@ -6,7 +6,7 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 const PDF_FILENAME = "Casa_Reykov_Capitulos_I-XLI_Edicion_Canonica.pdf";
 const EXPECTED_CHAPTERS = 41;
 const DEFAULT_PDF_PATH = path.join(process.env.USERPROFILE ?? "", "Downloads", PDF_FILENAME);
-const DEFAULT_OUTPUT_PATH = path.resolve("supabase", "import-casa-reykov.sql");
+const DEFAULT_OUTPUT_PATH = path.resolve("postgres", "import-casa-reykov.sql");
 const STANDARD_FONTS_URL = `${path.resolve("node_modules", "pdfjs-dist", "standard_fonts").replaceAll("\\", "/")}/`;
 
 const pdfPath = path.resolve(process.argv[2] ?? DEFAULT_PDF_PATH);
@@ -115,7 +115,7 @@ function buildSql(chapters) {
   });
 
   return `-- Generado automáticamente desde ${PDF_FILENAME}.
--- Revisa este archivo y ejecútalo en Supabase > SQL Editor.
+-- Revisa este archivo y ejecútalo en la base PostgreSQL de Pliegoluz.
 
 begin;
 

@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getFirebaseSessionUser } from "@/lib/firebase/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getDatabase, isDatabaseConfigured, oneOrNull } from "@/lib/postgres";
 
 export type UserRole = "reader" | "author" | "admin";
 
@@ -16,20 +16,26 @@ export type UserIdentity = {
   role: UserRole;
 };
 
+type ProfileRow = {
+  id: string;
+  firebase_uid: string;
+  display_name: string | null;
+  photo_url: string | null;
+  role: UserRole;
+  suspended_at: Date | null;
+};
+
 export const getCurrentUserIdentity = cache(async (): Promise<UserIdentity | null> => {
   const sessionUser = await getFirebaseSessionUser();
-  if (!sessionUser) return null;
+  if (!sessionUser || !isDatabaseConfigured()) return null;
 
-  const supabase = createAdminClient();
-  if (!supabase) return null;
-
-  const { data: profile, error } = await supabase
-    .from("firebase_profiles")
-    .select("id, firebase_uid, display_name, photo_url, role, suspended_at")
-    .eq("firebase_uid", sessionUser.uid)
-    .maybeSingle<{ id: string; firebase_uid: string; display_name: string | null; photo_url: string | null; role: UserRole; suspended_at: string | null }>();
-
-  if (error || !profile || profile.suspended_at) return null;
+  const profile = await oneOrNull<ProfileRow>(
+    `select id, firebase_uid, display_name, photo_url, role, suspended_at
+       from public.firebase_profiles
+      where firebase_uid = $1`,
+    [sessionUser.uid],
+  );
+  if (!profile || profile.suspended_at) return null;
 
   return {
     id: profile.id,
@@ -44,15 +50,13 @@ export const getCurrentUserIdentity = cache(async (): Promise<UserIdentity | nul
 export const requireUser = cache(async () => {
   const identity = await getCurrentUserIdentity();
   if (!identity) redirect("/login");
-  const supabase = createAdminClient();
-  if (!supabase) redirect("/login?error=Supabase Admin no está configurado.");
-
-  return { identity, supabase };
+  if (!isDatabaseConfigured()) redirect("/login?error=PostgreSQL no está configurado.");
+  return { identity, db: getDatabase() };
 });
 
 export const requireAuthor = cache(async () => {
   const context = await requireUser();
-  if (!(["author", "admin"] as UserRole[]).includes(context.identity.role)) {
+  if (!(context.identity.role === "author" || context.identity.role === "admin")) {
     redirect("/perfil?error=Tu cuenta no tiene permisos de autor.");
   }
   return context;
@@ -66,11 +70,11 @@ export const requireAdmin = cache(async () => {
 
 export async function requireBookManager(bookId: string) {
   const context = await requireAuthor();
-  const { data: book } = await context.supabase
-    .from("books")
-    .select("id, author_profile_id")
-    .eq("id", bookId)
-    .maybeSingle<{ id: string; author_profile_id: string | null }>();
+  const result = await context.db.query<{ id: string; author_profile_id: string | null }>(
+    `select id, author_profile_id from public.books where id = $1`,
+    [bookId],
+  );
+  const book = result.rows[0] ?? null;
 
   if (!book || (context.identity.role === "author" && book.author_profile_id !== context.identity.id)) {
     redirect("/dashboard?error=No tienes permisos para administrar esa obra.");

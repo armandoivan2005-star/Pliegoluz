@@ -1,7 +1,7 @@
 import { getCurrentUserIdentity } from "@/lib/editor-auth";
 import { createBookPdf } from "@/lib/book-pdf";
 import { repairImportedChapter } from "@/lib/chapter-import";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getDatabase } from "@/lib/postgres";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,37 +46,42 @@ export async function GET(_request: Request, context: RouteContext<"/api/dashboa
     return errorResponse("No tienes permisos para descargar libros desde el panel editorial.", 403);
   }
 
-  const supabase = createAdminClient();
-  if (!supabase) return errorResponse("Supabase Admin no está configurado.", 503);
-
-  let bookQuery = supabase
-    .from("books")
-    .select("id, author_profile_id, slug, title, subtitle, author_name, description")
-    .eq("id", bookId);
-  if (identity.role === "author") bookQuery = bookQuery.eq("author_profile_id", identity.id);
-
-  const { data: book, error: bookError } = await bookQuery.maybeSingle<ExportBookRow>();
-  if (bookError) {
-    console.error("Book PDF query failed", { code: bookError.code });
+  const db = getDatabase();
+  let book: ExportBookRow | undefined;
+  try {
+    const bookResult = await db.query<ExportBookRow>(
+      `select id, author_profile_id, slug, title, subtitle, author_name, description
+         from public.books
+        where id = $1
+          and ($2::boolean = false or author_profile_id = $3)`,
+      [bookId, identity.role === "author", identity.id],
+    );
+    book = bookResult.rows[0];
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "unknown";
+    console.error("Book PDF query failed", { code });
     return errorResponse("No se pudo cargar el libro.", 500);
   }
   if (!book) return errorResponse("El libro no existe o no puedes administrarlo.", 404);
 
-  const { data: chapterRows, error: chaptersError } = await supabase
-    .from("chapters")
-    .select("number, title, content_markdown")
-    .eq("book_id", book.id)
-    .neq("status", "archived")
-    .order("number", { ascending: true })
-    .limit(MAX_EXPORT_CHAPTERS + 1)
-    .returns<ExportChapterRow[]>();
-
-  if (chaptersError) {
-    console.error("Book PDF chapters query failed", { code: chaptersError.code });
+  let chapterRows: ExportChapterRow[];
+  try {
+    const chaptersResult = await db.query<ExportChapterRow>(
+      `select number, title, content_markdown
+         from public.chapters
+        where book_id = $1 and status <> 'archived'
+        order by number asc
+        limit $2`,
+      [book.id, MAX_EXPORT_CHAPTERS + 1],
+    );
+    chapterRows = chaptersResult.rows;
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "unknown";
+    console.error("Book PDF chapters query failed", { code });
     return errorResponse("No se pudieron cargar los capítulos.", 500);
   }
 
-  const chapters = (chapterRows ?? [])
+  const chapters = chapterRows
     .filter((chapter) => chapter.content_markdown.trim())
     .map((chapter) => {
       const repaired = repairImportedChapter({
@@ -93,7 +98,7 @@ export async function GET(_request: Request, context: RouteContext<"/api/dashboa
     });
 
   if (!chapters.length) return errorResponse("El libro todavía no tiene capítulos con contenido.", 409);
-  if ((chapterRows?.length ?? 0) > MAX_EXPORT_CHAPTERS) {
+  if (chapterRows.length > MAX_EXPORT_CHAPTERS) {
     return errorResponse(`La descarga admite un máximo de ${MAX_EXPORT_CHAPTERS} capítulos.`, 413);
   }
 

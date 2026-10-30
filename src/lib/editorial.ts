@@ -42,60 +42,79 @@ export type EditorBook = {
   updated_at: string;
 };
 
+type EditorBookSummaryRow = Omit<EditorBookSummary, "chapters"> & { chapter_count: number };
+
 function repairEditorChapter(chapter: EditorChapter): EditorChapter {
   const repaired = repairImportedChapter({
     number: chapter.number,
     title: chapter.title,
     content: chapter.content_markdown,
   });
-
-  return {
-    ...chapter,
-    title: repaired.title,
-    content_markdown: repaired.content,
-  };
+  return { ...chapter, title: repaired.title, content_markdown: repaired.content };
 }
 
 export async function getEditorBooks() {
-  const { supabase, identity } = await requireAuthor();
-  let query = supabase
-    .from("books")
-    .select("id, slug, title, subtitle, author_name, status, updated_at, chapters(count)")
-    .order("updated_at", { ascending: false });
-  if (identity.role === "author") query = query.eq("author_profile_id", identity.id);
-  const { data, error } = await query.returns<EditorBookSummary[]>();
+  const { db, identity } = await requireAuthor();
+  const values: unknown[] = [];
+  const ownership = identity.role === "author" ? "where b.author_profile_id = $1" : "";
+  if (identity.role === "author") values.push(identity.id);
 
-  if (error) throw new Error("No se pudieron cargar los libros. Ejecuta las migraciones de Supabase pendientes.");
-  return data ?? [];
+  const { rows } = await db.query<EditorBookSummaryRow>(
+    `select b.id, b.slug, b.title, b.subtitle, b.author_name, b.status,
+            b.updated_at::text,
+            count(c.id)::integer as chapter_count
+       from public.books b
+       left join public.chapters c on c.book_id = b.id
+       ${ownership}
+      group by b.id
+      order by b.updated_at desc`,
+    values,
+  );
+
+  return rows.map((book) => ({
+    id: book.id,
+    slug: book.slug,
+    title: book.title,
+    subtitle: book.subtitle,
+    author_name: book.author_name,
+    status: book.status,
+    updated_at: book.updated_at,
+    chapters: [{ count: book.chapter_count }],
+  }));
 }
 
 export async function getEditorBook(bookId: string) {
-  const { supabase } = await requireBookManager(bookId);
-  const { data: book, error: bookError } = await supabase
-    .from("books")
-    .select("id, slug, title, subtitle, author_name, description, genres, cover_path, status, work_status, published_at, updated_at")
-    .eq("id", bookId)
-    .maybeSingle<EditorBook>();
-  const { data: chapters, error: chaptersError } = await supabase
-    .from("chapters")
-    .select("id, number, title, content_markdown, status, reading_minutes, updated_at")
-    .eq("book_id", bookId)
-    .order("number", { ascending: true })
-    .returns<EditorChapter[]>();
+  const { db } = await requireBookManager(bookId);
+  const [bookResult, chaptersResult] = await Promise.all([
+    db.query<EditorBook>(
+      `select id, slug, title, subtitle, author_name, description, genres,
+              case when cover_data is null then null else 'postgres' end as cover_path,
+              status, work_status, published_at::text, updated_at::text
+         from public.books where id = $1`,
+      [bookId],
+    ),
+    db.query<EditorChapter>(
+      `select id, number, title, content_markdown, status, reading_minutes, updated_at::text
+         from public.chapters
+        where book_id = $1
+        order by number asc`,
+      [bookId],
+    ),
+  ]);
 
-  if (bookError || chaptersError) throw new Error("No se pudo cargar la obra editorial.");
-  return { book, chapters: (chapters ?? []).map(repairEditorChapter) };
+  return {
+    book: bookResult.rows[0] ?? null,
+    chapters: chaptersResult.rows.map(repairEditorChapter),
+  };
 }
 
 export async function getEditorChapter(bookId: string, chapterId: string) {
-  const { supabase } = await requireBookManager(bookId);
-  const { data, error } = await supabase
-    .from("chapters")
-    .select("id, number, title, content_markdown, status, reading_minutes, updated_at")
-    .eq("id", chapterId)
-    .eq("book_id", bookId)
-    .maybeSingle<EditorChapter>();
-
-  if (error) throw new Error("No se pudo cargar el capítulo.");
-  return data ? repairEditorChapter(data) : null;
+  const { db } = await requireBookManager(bookId);
+  const { rows } = await db.query<EditorChapter>(
+    `select id, number, title, content_markdown, status, reading_minutes, updated_at::text
+       from public.chapters
+      where id = $1 and book_id = $2`,
+    [chapterId, bookId],
+  );
+  return rows[0] ? repairEditorChapter(rows[0]) : null;
 }

@@ -2,8 +2,8 @@ import "server-only";
 
 import { cache } from "react";
 import { getCurrentUserIdentity, requireUser } from "@/lib/editor-auth";
+import { oneOrNull, query } from "@/lib/postgres";
 import { publicCoverUrl } from "@/lib/public-library";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FavoriteBook = {
   id: string;
@@ -20,112 +20,95 @@ export type ReadingPosition = {
   paragraphOffset: number;
 };
 
+type FavoriteBookRow = {
+  id: string;
+  slug: string;
+  title: string;
+  author_name: string;
+  has_cover: boolean;
+  chapter_count: number;
+};
+
 export const getProfileLibrary = cache(async () => {
-  const { identity, supabase } = await requireUser();
-  const { data: favorites } = await supabase
-    .from("book_favorites")
-    .select("book_id, created_at")
-    .eq("profile_id", identity.id)
-    .order("created_at", { ascending: false })
-    .returns<Array<{ book_id: string; created_at: string }>>();
+  const { identity, db } = await requireUser();
+  const { rows } = await db.query<FavoriteBookRow>(
+    `select b.id, b.slug, b.title, b.author_name,
+            (b.cover_data is not null) as has_cover,
+            count(c.id)::integer as chapter_count
+       from public.book_favorites f
+       join public.books b on b.id = f.book_id and b.status = 'published'
+       left join public.chapters c on c.book_id = b.id and c.status = 'published'
+      where f.profile_id = $1
+      group by b.id, f.created_at
+      order by f.created_at desc`,
+    [identity.id],
+  );
 
-  const favoriteIds = (favorites ?? []).map((favorite) => favorite.book_id);
-  if (!favoriteIds.length) return { identity, books: [] as FavoriteBook[] };
-
-  const { data: books } = await supabase
-    .from("books")
-    .select("id, slug, title, author_name, cover_path, chapters(count)")
-    .in("id", favoriteIds)
-    .eq("status", "published")
-    .eq("chapters.status", "published")
-    .returns<Array<{ id: string; slug: string; title: string; author_name: string; cover_path: string | null; chapters: Array<{ count: number }> }>>();
-
-  const order = new Map(favoriteIds.map((id, index) => [id, index]));
-  const mapped = (books ?? []).map((book) => ({
-    id: book.id,
-    slug: book.slug,
-    title: book.title,
-    author: book.author_name,
-    coverUrl: publicCoverUrl(book.cover_path),
-    chapters: book.chapters[0]?.count ?? 0,
-  })).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-
-  return { identity, books: mapped };
+  return {
+    identity,
+    books: rows.map((book) => ({
+      id: book.id,
+      slug: book.slug,
+      title: book.title,
+      author: book.author_name,
+      coverUrl: publicCoverUrl(book.id, book.has_cover),
+      chapters: book.chapter_count,
+    })) satisfies FavoriteBook[],
+  };
 });
 
 export const getBookInteraction = cache(async (slug: string) => {
   const identity = await getCurrentUserIdentity();
   if (!identity) return { identity: null, bookId: null, favorite: false, rating: null };
 
-  const supabase = createAdminClient();
-  if (!supabase) return { identity, bookId: null, favorite: false, rating: null };
-
-  const { data: book, error: bookError } = await supabase
-    .from("books")
-    .select("id")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle<{ id: string }>();
-  if (bookError) throw new Error("No se pudo cargar la interacción con el libro.");
+  const book = await oneOrNull<{ id: string }>(
+    `select id from public.books where slug = $1 and status = 'published'`,
+    [slug],
+  );
   if (!book) return { identity, bookId: null, favorite: false, rating: null };
 
-  const [{ data: ownRating, error: ratingError }, { data: favorite, error: favoriteError }] = await Promise.all([
-    supabase
-      .from("book_ratings")
-      .select("rating")
-      .eq("profile_id", identity.id)
-      .eq("book_id", book.id)
-      .maybeSingle<{ rating: number }>(),
-    supabase
-      .from("book_favorites")
-      .select("book_id")
-      .eq("profile_id", identity.id)
-      .eq("book_id", book.id)
-      .maybeSingle<{ book_id: string }>(),
+  const [rating, favorite] = await Promise.all([
+    oneOrNull<{ rating: number }>(
+      `select rating from public.book_ratings where profile_id = $1 and book_id = $2`,
+      [identity.id, book.id],
+    ),
+    oneOrNull<{ book_id: string }>(
+      `select book_id from public.book_favorites where profile_id = $1 and book_id = $2`,
+      [identity.id, book.id],
+    ),
   ]);
-
-  if (ratingError || favoriteError) throw new Error("No se pudieron cargar tus datos del libro.");
 
   return {
     identity,
     bookId: book.id,
     favorite: Boolean(favorite),
-    rating: ownRating?.rating ?? null,
+    rating: rating?.rating ?? null,
   };
 });
 
 export const getReadingPosition = cache(async (slug: string): Promise<ReadingPosition | null> => {
   const identity = await getCurrentUserIdentity();
-  const supabase = createAdminClient();
-  if (!identity || !supabase) return null;
+  if (!identity) return null;
 
-  const { data: book } = await supabase
-    .from("books")
-    .select("id")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle<{ id: string }>();
-  if (!book) return null;
-
-  const { data: progress, error } = await supabase
-    .from("reading_progress")
-    .select("chapter_id, paragraph_index, paragraph_offset")
-    .eq("profile_id", identity.id)
-    .eq("book_id", book.id)
-    .maybeSingle<{ chapter_id: string; paragraph_index: number; paragraph_offset: number | string }>();
-  if (error || !progress) return null;
-
-  const { data: chapter } = await supabase
-    .from("chapters")
-    .select("number")
-    .eq("id", progress.chapter_id)
-    .eq("book_id", book.id)
-    .eq("status", "published")
-    .maybeSingle<{ number: number }>();
-  if (!chapter) return null;
+  const rows = await query<{
+    chapter_number: number;
+    paragraph_index: number;
+    paragraph_offset: string | number;
+  }>(
+    `select c.number as chapter_number, rp.paragraph_index, rp.paragraph_offset
+       from public.reading_progress rp
+       join public.books b on b.id = rp.book_id and b.status = 'published'
+       join public.chapters c on c.id = rp.chapter_id
+                             and c.book_id = b.id
+                             and c.status = 'published'
+      where rp.profile_id = $1 and b.slug = $2`,
+    [identity.id, slug],
+  );
+  const progress = rows[0];
+  if (!progress) return null;
 
   return {
-    chapterNumber: chapter.number,
+    chapterNumber: progress.chapter_number,
     paragraphIndex: Math.max(0, progress.paragraph_index),
     paragraphOffset: Math.min(1, Math.max(0, Number(progress.paragraph_offset))),
   };

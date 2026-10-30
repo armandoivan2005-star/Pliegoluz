@@ -15,7 +15,7 @@ export function BookCover({ className = "", title = "Casa Reykov", chapterCount 
       className={`book-cover theme-static relative isolate aspect-[2/3] overflow-hidden rounded-[3px] text-[#f0e7d3] shadow-[0_30px_70px_rgba(0,0,0,.38)] ${className}`}
     >
       {coverUrl ? (
-        // Supabase entrega esta imagen desde el bucket público de portadas.
+        // La ruta interna entrega la imagen almacenada en PostgreSQL.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={coverUrl} alt={`Portada de ${title}`} className="absolute inset-0 size-full object-cover" loading="lazy" />
       ) : (
